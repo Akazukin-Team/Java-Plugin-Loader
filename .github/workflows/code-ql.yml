@@ -1,0 +1,61 @@
+name: CodeQL
+
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'master'
+      - 'product'
+      - 'prod'
+
+      - 'develop'
+      - 'dev'
+
+
+jobs:
+  analyze:
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'ci/skip') }}
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'java' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+
+      # Github CodeQL Scanner
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+
+      # Jetbrains Qodana Scanner
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@latest
+        if: ${{ env.QODANA_TOKEN != '' }}
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}

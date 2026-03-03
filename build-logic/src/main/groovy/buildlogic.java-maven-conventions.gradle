@@ -1,0 +1,92 @@
+plugins {
+    id 'maven-publish'
+    id 'java-library'
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+Properties props = new Properties()
+try (FileInputStream fis = new FileInputStream(new File(parent.rootDir.getPath(), 'application.properties'))) {
+    props.load(fis)
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'Releases'
+            url = uri('https://maven.akazukin.org/refer/maven-<PLACEHOLDER_MAVEN>-releases/')
+            credentials {
+                username = project.hasProperty('repository.username') ? project['repository.username'] : System.getenv('REPOSITORY_USERNAME')
+                password = project.hasProperty('repository.password') ? project['repository.password'] : System.getenv('REPOSITORY_PASSWORD')
+            }
+        }
+
+        maven {
+            name = 'Snapshots'
+            url = uri('https://maven.akazukin.org/refer/maven-<PLACEHOLDER_MAVEN>-snapshots/')
+            credentials {
+                username = project.hasProperty('repository.username') ? project['repository.username'] : System.getenv('REPOSITORY_USERNAME')
+                password = project.hasProperty('repository.password') ? project['repository.password'] : System.getenv('REPOSITORY_PASSWORD')
+            }
+        }
+
+        mavenLocal()
+    }
+
+    publications {
+        release(MavenPublication) {
+            groupId = props.getProperty('groupId')
+            artifactId = props.getProperty('artifactId')
+            version = props.getProperty('version')
+
+            from components.java
+
+            pom {
+                name = props.getProperty('name')
+                description = props.getProperty('description')
+                url = props.getProperty('url')
+
+                organization {
+                    name = props.getProperty('vendor')
+                    url = props.getProperty('vendor-url')
+                }
+
+                developers {
+                    developer {
+                        id = 'currypan1229'
+                        name = 'Currypan1229'
+                    }
+                }
+            }
+        }
+
+        snapshot(MavenPublication) {
+            groupId = props.getProperty('groupId')
+            artifactId = props.getProperty('artifactId')
+            version = "${props.getProperty('version')}-SNAPSHOT"
+
+            from components.java
+
+            pom {
+                name = props.getProperty('name')
+                description = props.getProperty('description')
+                url = props.getProperty('url')
+
+                organization {
+                    name = props.getProperty('vendor')
+                    url = props.getProperty('vendor-url')
+                }
+
+                developers {
+                    developer {
+                        id = 'currypan1229'
+                        name = 'Currypan1229'
+                    }
+                }
+            }
+        }
+    }
+}
