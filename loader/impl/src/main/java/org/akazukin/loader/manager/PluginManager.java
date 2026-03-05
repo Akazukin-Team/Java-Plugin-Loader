@@ -35,7 +35,6 @@ import org.akazukin.loader.event.events.PrePluginRegisterEvent;
 import org.akazukin.loader.event.events.PrePluginUnloadEvent;
 import org.akazukin.loader.event.events.PrePluginUnregisterEvent;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -199,16 +198,6 @@ public class PluginManager implements IPluginManager {
             {
                 final PostPluginUnloadEvent event = new PostPluginUnloadEvent(ctx);
                 this.eventMgr.callEvent(PostPluginUnloadEvent.class, event);
-            }
-        }
-    }
-
-    public void loadAll() {
-        for (final String pluginId : this.getPluginIds()) {
-            try {
-                this.loadPlugin(pluginId);
-            } catch (final PluginLifecycleException e) {
-                log.error("Failed to load plugin: " + pluginId, e);
             }
         }
     }
@@ -383,10 +372,25 @@ public class PluginManager implements IPluginManager {
     }
 
     @Override
-    @Nullable
-    public IPlugin getPlugin(@NotNull final String pluginId) {
-        final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
-        return ctx != null ? ctx.getPlugin() : null;
+    public void enableAll() {
+        for (final String pluginId : this.getPluginIds()) {
+            try {
+                this.enablePlugin(pluginId);
+            } catch (final PluginLifecycleException e) {
+                log.error("Failed to enable plugin: " + pluginId, e);
+            }
+        }
+    }
+
+    @Override
+    public void loadAll() {
+        for (final String pluginId : this.getPluginIds()) {
+            try {
+                this.loadPlugin(pluginId);
+            } catch (final PluginLifecycleException e) {
+                log.error("Failed to load plugin: " + pluginId, e);
+            }
+        }
     }
 
     @Override

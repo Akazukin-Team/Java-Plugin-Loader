@@ -14,8 +14,11 @@ public class Loader implements ILoader {
     @Getter
     LifecycleEventManager eventMgr;
     PluginContextManager ctxMgr;
+    @Getter
     PluginManager pluginMgr;
+    @Getter
     PluginResolver pluginResolver;
+    @Getter
     PluginLoader loader;
 
     public Loader(final ILoaderConfig cfg) {

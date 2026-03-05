@@ -1,10 +1,8 @@
 package org.akazukin.loader.api.manager;
 
-import org.akazukin.loader.api.context.IPlugin;
 import org.akazukin.loader.api.context.IPluginMetadata;
 import org.akazukin.loader.api.exception.PluginLifecycleException;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.net.URL;
 
@@ -24,10 +22,11 @@ public interface IPluginManager {
 
     void unregisterPlugin(@NotNull String pluginId) throws PluginLifecycleException;
 
-    @Nullable
-    IPlugin getPlugin(@NotNull String pluginId);
+    void enableAll();
 
-    void unloadAll() throws PluginLifecycleException;
+    void loadAll();
+
+    void unloadAll();
 
     void shutdown();
 }
