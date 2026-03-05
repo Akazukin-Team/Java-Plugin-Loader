@@ -10,8 +10,8 @@ public enum PluginState {
     NONE("None", 0, false, false, false),
     ENTRY("Entry", 1, true, false, false),
     LOADED("Loaded", 2, true, true, false),
-
-    ENABLED("Enabled", 3, true, true, true);
+    ENABLED("Enabled", 3, true, true, true),
+    TERMINATED("Terminated", -1, false, false, false);
 
     String name;
     int order;

@@ -37,10 +37,13 @@ import org.akazukin.loader.event.events.PrePluginUnregisterEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -153,121 +156,49 @@ public class PluginManager implements IPluginManager {
         }, this.executor);
     }
 
-
-    public synchronized void disablePluginInternal(final PluginContext ctx) throws PluginLifecycleException {
-        final IPluginMetadata meta = ctx.getMetadata();
-        synchronized (ctx) {
-            if (!ctx.getState().isEnabled()) {
-                throw new IllegalStateException("Plugin already disabled: " + meta.getId());
-            }
-
-            try {
-                log.info("Disabling plugin: " + meta.getId());
-
-                for (final PluginContext pl : this.pluginResolver.getAllPlugins()) {
-                    for (final IPluginContext depCtx : pl.getDependencies()) {
-                        if (depCtx != ctx) {
-                            continue;
-                        }
-                        if (!depCtx.getState().isEnabled()) {
-                            continue;
-                        }
-
-                        log.debug("Disabling dependency: " + depCtx.getMetadata().getId());
-                        try {
-                            this.disablePlugin(pl.getMetadata().getId());
-                            log.debug("Disabled dependency: " + depCtx.getMetadata().getId());
-                        } catch (final PluginLifecycleException e) {
-                            log.debug("Failed to disable dependency: " + depCtx.getMetadata().getId(), e);
-                        }
-                    }
-                }
-
-
-                ctx.setDynamicState(PluginDynamicState.DISABLING);
-
-                {
-                    final PrePluginDisableEvent event = new PrePluginDisableEvent(ctx);
-                    this.eventMgr.callEvent(PrePluginDisableEvent.class, event);
-                }
-
-                try {
-                    ctx.getPlugin().onDisable();
-                } catch (final Throwable t) {
-                    log.error("Failed to call onDisable() of plugin: " + meta.getId(), t);
-                }
-
-                ctx.setState(PluginState.LOADED);
-                ctx.setDynamicState(PluginDynamicState.NONE);
-
-                log.info("Plugin disabled successfully: " + meta.getId());
-
-                {
-                    final PostPluginDisableEvent event = new PostPluginDisableEvent(ctx);
-                    this.eventMgr.callEvent(PostPluginDisableEvent.class, event);
-                }
-            } catch (final Throwable e) {
-                ctx.setDynamicState(PluginDynamicState.NONE);
-
-                throw new PluginDynamicsLifecycleException("Failed to initialize plugin: " + meta.getId(), meta.getId(),
-                        PluginState.ENABLED, PluginState.LOADED,
-                        e);
-            }
-        }
-    }
-
-    public synchronized void unloadPluginInternal(final @NotNull String pluginId) throws PluginLifecycleException {
-        final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
-        if (ctx == null) {
-            throw new IllegalArgumentException("Plugin not found: " + pluginId);
-        }
-
+    public synchronized void unloadPluginInternal(final @NotNull PluginContext ctx) throws PluginLifecycleException {
         final IPluginMetadata meta = ctx.getMetadata();
         synchronized (ctx) {
             if (!ctx.getState().isLoaded()) {
                 throw new IllegalStateException("Plugin already unloaded: " + meta.getId());
             }
             if (ctx.getState().isEnabled()) {
-                this.disablePlugin(pluginId);
+                try {
+                    this.disablePluginInternal(ctx);
+                } catch (final PluginLifecycleException e) {
+                    log.error("Failed to disable plugin, but ignored: " + meta.getId(), e);
+                }
+            }
+
+            log.info("Unloading plugin: " + meta.getName());
+            ctx.setDynamicState(PluginDynamicState.UNLOADING);
+
+            {
+                final PrePluginUnloadEvent event = new PrePluginUnloadEvent(ctx);
+                this.eventMgr.callEvent(PrePluginUnloadEvent.class, event);
             }
 
             try {
-                log.info("Unloading plugin: " + meta.getName());
-                ctx.setDynamicState(PluginDynamicState.UNLOADING);
+                ctx.getPlugin().onUnload();
+            } catch (final Throwable t2) {
+                log.error("Failed to call onUnload() of plugin: " + meta.getId(), t2);
+            }
+            ctx.setPlugin(null);
 
-                {
-                    final PrePluginUnloadEvent event = new PrePluginUnloadEvent(ctx);
-                    this.eventMgr.callEvent(PrePluginUnloadEvent.class, event);
-                }
-
-                Throwable t = null;
-                if (ctx.getPlugin() != null) {
-                    try {
-                        ctx.getPlugin().onUnload();
-                    } catch (final Throwable t2) {
-                        t = t2;
-                        log.error("Failed to call onUnload() of plugin: " + meta.getId(), t2);
-                    }
-                } else {
-                    log.debug("Plugin not loaded: " + meta.getId() + ", Skipping onUnload()");
-                }
-
+            try {
                 ctx.getClassLoader().close();
-                ctx.setClassLoader(null);
+            } catch (final IOException e) {
+                throw new RuntimeException(e);
+            }
+            ctx.setClassLoader(null);
 
 
-                ctx.setDynamicState(PluginDynamicState.NONE);
-                ctx.setState(PluginState.NONE);
+            ctx.setDynamicState(PluginDynamicState.NONE);
+            ctx.setState(PluginState.NONE);
 
-                {
-                    final PostPluginUnloadEvent event = new PostPluginUnloadEvent(ctx);
-                    this.eventMgr.callEvent(PostPluginUnloadEvent.class, event);
-                }
-            } catch (final Exception e) {
-                ctx.setDynamicState(PluginDynamicState.NONE);
-                throw new PluginDynamicsLifecycleException("Failed to initialize plugin: " + meta.getId(), meta.getId(),
-                        PluginState.LOADED, PluginState.NONE,
-                        e);
+            {
+                final PostPluginUnloadEvent event = new PostPluginUnloadEvent(ctx);
+                this.eventMgr.callEvent(PostPluginUnloadEvent.class, event);
             }
         }
     }
@@ -387,12 +318,8 @@ public class PluginManager implements IPluginManager {
 
     @Override
     public void unloadPlugin(@NotNull final String pluginId) throws PluginLifecycleException {
-        final INode node = this.depResolver.getLowerNode(pluginId);
-        if (!node.getResult().isSuccess()) {
-            throw new PluginDependencyLoadException(pluginId, node.getResult());
-        }
-
-        this.unloadNode(node, false, new LoadCache()).join();
+        final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
+        this.unloadPluginInternal(ctx);
     }
 
     @Override
@@ -484,6 +411,60 @@ public class PluginManager implements IPluginManager {
         this.unloadAll();
     }
 
+    public synchronized void disablePluginInternal(final PluginContext ctx) throws PluginLifecycleException {
+        final IPluginMetadata meta = ctx.getMetadata();
+        synchronized (ctx) {
+            if (!ctx.getState().isEnabled()) {
+                throw new IllegalStateException("Plugin already disabled: " + meta.getId());
+            }
+
+            log.info("Disabling plugin: " + meta.getId());
+
+            for (final PluginContext pl : this.pluginResolver.getAllPlugins()) {
+                for (final IPluginContext depCtx : pl.getDependencies()) {
+                    if (depCtx != ctx) {
+                        continue;
+                    }
+                    if (!depCtx.getState().isEnabled()) {
+                        continue;
+                    }
+
+                    log.debug("Disabling dependency: " + depCtx.getMetadata().getId());
+                    try {
+                        this.disablePlugin(pl.getMetadata().getId());
+                        log.debug("Disabled dependency: " + depCtx.getMetadata().getId());
+                    } catch (final PluginLifecycleException e) {
+                        log.debug("Failed to disable dependency: " + depCtx.getMetadata().getId(), e);
+                    }
+                }
+            }
+
+
+            ctx.setDynamicState(PluginDynamicState.DISABLING);
+
+            {
+                final PrePluginDisableEvent event = new PrePluginDisableEvent(ctx);
+                this.eventMgr.callEvent(PrePluginDisableEvent.class, event);
+            }
+
+            try {
+                ctx.getPlugin().onDisable();
+            } catch (final Throwable t) {
+                log.error("Failed to call onDisable() of plugin: " + meta.getId(), t);
+            }
+
+            ctx.setState(PluginState.LOADED);
+            ctx.setDynamicState(PluginDynamicState.NONE);
+
+            log.info("Plugin disabled successfully: " + meta.getId());
+
+            {
+                final PostPluginDisableEvent event = new PostPluginDisableEvent(ctx);
+                this.eventMgr.callEvent(PostPluginDisableEvent.class, event);
+            }
+        }
+    }
+
     public String[] getPluginIds() {
         return Arrays.stream(this.ctxMgr.getContexts())
                 .map(c -> c.getMetadata().getId())
@@ -500,43 +481,41 @@ public class PluginManager implements IPluginManager {
                 || !(node.getResult() instanceof final ISuccessResult res)) {
             throw new IllegalArgumentException("Invalid node: " + node);
         }
-        if (this.ctxMgr.getPluginContext(node.getPluginId()).getState().isEnabled()) {
+        final PluginContext ctx = this.ctxMgr.getPluginContext(node.getPluginId());
+        if (ctx == null) {
+            throw new IllegalArgumentException("Plugin not found: " + node.getPluginId());
+        }
+        if (ctx.getState().isEnabled()) {
             return CompletableFuture.completedFuture(node);
         }
 
-        if (cache.visited.contains(node.getPluginId())) {
-            throw new PluginLifecycleException("Circular dependency detected: " + node.getPluginId(), node.getPluginId());
-        }
-        cache.visited.add(node.getPluginId());
-
-        final Set<CompletableFuture<INode>> futures = new HashSet<>();
+        final Map<INode, CompletableFuture<INode>> futures = new HashMap<>();
         for (final INode dep : res.getNodes()) {
-            futures.add(this.enableNode(dep, cache.clone()));
+            futures.put(dep, this.enableNode(dep, cache.clone()));
         }
         try {
-            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-        } catch (final CompletionException e) {
-            final CompletableFuture<?>[] safeReverts = futures.stream()
-                    .map(f -> f.handle((resNode, ex) -> {
-                                if (ex != null) {
-                                    return CompletableFuture.completedFuture(null);
-                                }
-                                try {
-                                    return this.unloadNode(resNode, false, cache)
-                                            .exceptionally(err -> {
-                                                log.error("An exception was thrown while reverting a successfully enabled plugin", err);
-                                                return null;
-                                            });
-                                } catch (final PluginLifecycleException ex2) {
-                                    log.error("An unexpected error occurred while scheduling revert", ex2);
-                                    return CompletableFuture.completedFuture(null);
-                                }
-                            })
-                            .thenCompose(x -> x))
+            CompletableFuture.allOf(futures.values().toArray(CompletableFuture[]::new)).join();
+        } catch (final CompletionException ex) {
+            final CompletableFuture<?>[] safeReverts = futures.entrySet().stream()
+                    .map(e ->
+                            e.getValue()
+                                    .thenApply(CompletableFuture::completedFuture)
+                                    .exceptionally(ex2 -> {
+                                        final PluginContext ctx_ = this.ctxMgr.getPluginContext(e.getKey().getPluginId());
+                                        return CompletableFuture.runAsync(() -> {
+                                            try {
+                                                this.unloadPluginInternal(ctx_);
+                                            } catch (final PluginLifecycleException ex3) {
+                                                log.error("An unexpected error occurred while scheduling revert", ex3);
+                                                return CompletableFuture.completedFuture(null);
+                                            }
+                                        });
+                                    })
+                                    .thenCompose(x -> x))
                     .toArray(CompletableFuture[]::new);
             CompletableFuture.allOf(safeReverts).join();
 
-            final Throwable cause = e.getCause();
+            final Throwable cause = ex.getCause();
             if (cause instanceof final PluginLifecycleException e2) {
                 throw e2;
             }
@@ -549,11 +528,6 @@ public class PluginManager implements IPluginManager {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 synchronized (cache.processed) {
-                    final PluginContext ctx = this.ctxMgr.getPluginContext(node.getPluginId());
-                    if (ctx == null) {
-                        throw new IllegalStateException("Plugin not found: " + node.getPluginId());
-                    }
-
                     if (cache.processed.contains(node.getPluginId())) {
                         if (!ctx.getState().isEnabled()) {
                             throw new PluginLifecycleException("Plugin was tried to enable but already failed: " + node.getPluginId(), node.getPluginId());
