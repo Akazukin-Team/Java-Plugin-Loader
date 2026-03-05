@@ -5,7 +5,6 @@ akz-event = "3.0.0-SNAPSHOT"
 akz-service = "4.0.0"
 lombok = "1.18.42"
 jetbrains-annotation = "26.1.0"
-gson = "2.13.2"
 
 # Logging
 slf4j = "2.1.0-alpha1"
@@ -28,7 +27,6 @@ akz-event = { module = "org.akazukin:event", version.ref = "akz-event" }
 akz-service = { module = "org.akazukin:service", version.ref = "akz-service" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 jetbrains-annotations = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotation" }
-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
 # Logging
 slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
