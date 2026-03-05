@@ -1,11 +1,15 @@
 [versions]
 #App deps
+akz-util = "5.0.0-SNAPSHOT"
+akz-event = "3.0.0-SNAPSHOT"
+akz-service = "4.0.0"
 lombok = "1.18.42"
 jetbrains-annotation = "26.1.0"
-slf4j = "2.1.0-alpha1"
+gson = "2.13.2"
 
-# Database deps
-doma = "3.11.1"
+# Logging
+slf4j = "2.1.0-alpha1"
+logback = "1.5.32"
 
 # JMH Libraries
 jmh-lib = "1.37"
@@ -13,20 +17,22 @@ jmh-lib = "1.37"
 #Gradle Plugin
 gradle-versions = "0.52.0"
 jmh-pl = "0.7.3"
-doma-plugin = "3.0.0"
 graalvm = "0.11.4"
 runTask = "2.2.3"
 
 
 [libraries]
 #App deps
+akz-util = { module = "org.akazukin:util", version.ref = "akz-util" }
+akz-event = { module = "org.akazukin:event", version.ref = "akz-event" }
+akz-service = { module = "org.akazukin:service", version.ref = "akz-service" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 jetbrains-annotations = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotation" }
-slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
-# Database deps
-doma-core = { module = "org.seasar.doma:doma-core", version.ref = "doma" }
-doma-processor = { module = "org.seasar.doma:doma-processor", version.ref = "doma" }
+# Logging
+slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
 # JMH Libraries
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh-lib" }
@@ -36,7 +42,5 @@ jmh-bytecode = { module = "org.openjdk.jmh:jmh-generator-bytecode", version.ref 
 #Gradle Plugin
 gradle-versions = { module = "com.github.ben-manes:gradle-versions-plugin", version.ref = "gradle-versions" }
 jmh-pl = { module = "me.champeau.jmh:me.champeau.jmh.gradle.plugin", version.ref = "jmh-pl" }
-doma-compile = { module = "org.domaframework.doma.compile:org.domaframework.doma.compile.gradle.plugin", version.ref = "doma-plugin" }
-doma-codegen = { module = "org.domaframework.doma.codegen:org.domaframework.doma.codegen.gradle.plugin", version.ref = "doma-plugin" }
 graalvm = { module = "org.graalvm.buildtools.native:org.graalvm.buildtools.native.gradle.plugin", version.ref = "graalvm" }
 runTask = { module = "xyz.jpenilla:run-task", version.ref = "runTask" }

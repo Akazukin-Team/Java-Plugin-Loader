@@ -9,8 +9,8 @@ Thank you for using this project! We’re happy to help you get the support you 
 
 If you have general questions about how to use this project, please use one of the following resources:
 
-- **Discussions:** [GitHub Discussions](https://github.com/Akazukin-Team/<PLACEHOLDER_REPO>/discussions)
-- **Q&A:** [GitHub Discussions](https://github.com/Akazukin-Team/<PLACEHOLDER_REPO>/discussions)
+- **Discussions:** [GitHub Discussions](https://github.com/Akazukin-Team/Java-Plugin-Loader/discussions)
+- **Q&A:** [GitHub Discussions](https://github.com/Akazukin-Team/Java-Plugin-Loader/discussions)
 - **Official Documentation:** Refer to the README and wiki pages for guidance.
 
 ---
@@ -18,7 +18,7 @@ If you have general questions about how to use this project, please use one of t
 ## 🐞 Reporting Bugs
 
 If you believe you’ve found a bug,
-please check the [issue tracker](https://github.com/Akazukin-Team/<PLACEHOLDER_REPO>/issues) to see if it has already
+please check the [issue tracker](https://github.com/Akazukin-Team/Java-Plugin-Loader/issues) to see if it has already
 been reported.
 If not, please open a new issue and include as much detail as possible.
 

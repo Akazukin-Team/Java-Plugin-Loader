@@ -1,0 +1,29 @@
+package org.akazukin.loader.api;
+
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Getter
+public enum PluginState {
+    NONE("None", 0, false, false, false),
+    ENTRY("Entry", 1, true, false, false),
+    LOADED("Loaded", 2, true, true, false),
+
+    ENABLED("Enabled", 3, true, true, true);
+
+    String name;
+    int order;
+    boolean preLoaded;
+    boolean loaded;
+    boolean enabled;
+
+    PluginState(final String name, final int order, final boolean preLoaded, final boolean loaded, final boolean enabled) {
+        this.name = name;
+        this.order = order;
+        this.preLoaded = preLoaded;
+        this.loaded = loaded;
+        this.enabled = enabled;
+    }
+}

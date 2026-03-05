@@ -1,8 +1,8 @@
-# <PLACEHOLDER_NAME>
+# Plugin Loader
 
-[![Build Status](https://github.com/Akazukin-Team/<PLACEHOLDER_REPO>/actions/workflows/build.yml/badge.svg)](https://github.com/Akazukin-Team/<PLACEHOLDER_REPO>/actions/workflows/build.yml)
+[![Build Status](https://github.com/Akazukin-Team/Java-Plugin-Loader/actions/workflows/build.yml/badge.svg)](https://github.com/Akazukin-Team/Java-Plugin-Loader/actions/workflows/build.yml)
 
-<PLACEHOLDER_DESCRIPTION>
+A thin application to implement a microkernel architecture.
 
 ---
 
@@ -32,7 +32,7 @@
 
 Make sure you have the following installed:
 
-- **Java Development Kit (JDK)** version 8 or later.
+- **Java Development Kit (JDK)** version 21 or later.
 
 ---
 
@@ -46,7 +46,7 @@ Make sure you have the following installed:
    <repository>
        <id>akazukin-repo</id>
        <name>Akazukin Repository</name>
-       <url>https://maven.akazukin.org/refer/maven-<PLACEHOLDER_MAVEN>/</url>
+       <url>https://maven.akazukin.org/refer/maven-public-applications/</url>
    </repository>
    ```
 
@@ -54,7 +54,7 @@ Make sure you have the following installed:
    ```xml
    <dependency>
        <groupId>org.akazukin</groupId>
-       <artifactId><PLACEHOLDER_ARTIFACT></artifactId>
+       <artifactId>plugin-loader</artifactId>
        <version>VERSION</version>
    </dependency>
    ```
@@ -68,13 +68,13 @@ Make sure you have the following installed:
    ```groovy
    maven {
        name = 'Akazukin Repository'
-       url = 'https://maven.akazukin.org/refer/maven-<PLACEHOLDER_MAVEN>/'
+       url = 'https://maven.akazukin.org/refer/maven-public-applications/'
    }
    ```
 
 2. Add the dependency to the `dependencies` block in your `build.gradle` file:
    ```groovy
-   implementation 'org.akazukin:<PLACEHOLDER_ARTIFACT>:<VERSION>'
+   implementation 'org.akazukin:plugin-loader:<VERSION>'
    ```
 
 ---
@@ -93,8 +93,8 @@ To build the project from source, follow these steps:
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/Akazukin-Team/<PLACEHOLDER_REPO>.git
-   cd <PLACEHOLDER_REPO>
+   git clone https://github.com/Akazukin-Team/Java-Plugin-Loader.git
+   cd Java-Plugin-Loader
    ```
 
 2. Build the project with Gradle:
