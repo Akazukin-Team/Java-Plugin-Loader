@@ -37,7 +37,6 @@ import org.akazukin.loader.event.events.PrePluginUnregisterEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.Arrays;
@@ -64,7 +63,7 @@ public class PluginManager implements IPluginManager {
         this.nodeLoader = new NodeLoader(16, this, this.ctxMgr);
     }
 
-    public void disablePluginInternal(final @NotNull String pluginId) throws PluginLifecycleException {
+    public synchronized void disablePluginInternal(final @NotNull String pluginId) throws PluginLifecycleException {
         final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + pluginId);
@@ -78,6 +77,26 @@ public class PluginManager implements IPluginManager {
 
             try {
                 log.info("Disabling plugin: " + meta.getId());
+
+                for (final PluginContext pl : this.pluginResolver.getAllPlugins()) {
+                    for (final IPluginContext depCtx : pl.getDependencies()) {
+                        if (depCtx != ctx) {
+                            continue;
+                        }
+                        if (!depCtx.getState().isEnabled()) {
+                            continue;
+                        }
+
+                        log.debug("Disabling dependency: " + depCtx.getMetadata().getId());
+                        try {
+                            this.disablePlugin(pl.getMetadata().getId());
+                            log.debug("Disabled dependency: " + depCtx.getMetadata().getId());
+                        } catch (final PluginLifecycleException e) {
+                            log.debug("Failed to disable dependency: " + depCtx.getMetadata().getId(), e);
+                        }
+                    }
+                }
+
 
                 ctx.setDynamicState(PluginDynamicState.DISABLING);
 
@@ -111,7 +130,7 @@ public class PluginManager implements IPluginManager {
         }
     }
 
-    public void unloadPluginInternal(final @NotNull String pluginId) throws PluginLifecycleException {
+    public synchronized void unloadPluginInternal(final @NotNull String pluginId) throws PluginLifecycleException {
         final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + pluginId);
@@ -239,14 +258,11 @@ public class PluginManager implements IPluginManager {
                 log.error("Failed to load plugin: " + meta.getId(), e);
 
                 ctx.setDynamicState(PluginDynamicState.NONE);
-                if (ctx.getClassLoader() != null) {
-                    try {
-                        final PluginClassLoader classLoader = ctx.getClassLoader();
-                        ctx.setClassLoader(null);
-                        classLoader.close();
-                    } catch (final IOException ex) {
-                        log.error("Failed to close ClassLoader", ex);
-                    }
+
+                try {
+                    this.unloadPlugin(pluginId);
+                } catch (final PluginLifecycleException ex) {
+                    log.error("Failed to unload plugin, but force unloaded: " + meta.getId(), ex);
                 }
 
                 throw new PluginDynamicsLifecycleException("Failed to load plugin: " + meta.getId(), meta.getId(),
