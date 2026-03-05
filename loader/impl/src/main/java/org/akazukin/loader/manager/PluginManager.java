@@ -477,10 +477,10 @@ public class PluginManager implements IPluginManager {
             return CompletableFuture.completedFuture(node);
         }
 
-        if (!node.getResult().isSuccess()
-                || !(node.getResult() instanceof final ISuccessResult res)) {
+        if (!node.getResult().isSuccess() || !(node.getResult() instanceof final ISuccessResult res)) {
             throw new IllegalArgumentException("Invalid node: " + node);
         }
+
         final PluginContext ctx = this.ctxMgr.getPluginContext(node.getPluginId());
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + node.getPluginId());
@@ -493,27 +493,24 @@ public class PluginManager implements IPluginManager {
         for (final INode dep : res.getNodes()) {
             futures.put(dep, this.enableNode(dep, cache.clone()));
         }
+
         try {
             CompletableFuture.allOf(futures.values().toArray(CompletableFuture[]::new)).join();
         } catch (final CompletionException ex) {
-            final CompletableFuture<?>[] safeReverts = futures.entrySet().stream()
-                    .map(e ->
-                            e.getValue()
-                                    .thenApply(CompletableFuture::completedFuture)
-                                    .exceptionally(ex2 -> {
-                                        final PluginContext ctx_ = this.ctxMgr.getPluginContext(e.getKey().getPluginId());
-                                        return CompletableFuture.runAsync(() -> {
-                                            try {
-                                                this.unloadPluginInternal(ctx_);
-                                            } catch (final PluginLifecycleException ex3) {
-                                                log.error("An unexpected error occurred while scheduling revert", ex3);
-                                                return CompletableFuture.completedFuture(null);
-                                            }
-                                        });
-                                    })
-                                    .thenCompose(x -> x))
-                    .toArray(CompletableFuture[]::new);
-            CompletableFuture.allOf(safeReverts).join();
+            // On failure, attempt to unload any implicitly-loaded dependency plugins
+            for (final INode dep : futures.keySet()) {
+                try {
+                    final IPluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                    if (depCtx != null && depCtx.getStateSpec() == null && depCtx.getState() != null && depCtx.getState().isLoaded()) {
+                        try {
+                            this.unloadPlugin(dep.getPluginId());
+                        } catch (final PluginLifecycleException e) {
+                            log.error("Failed to unload dependency after enable failure: {}", dep.getPluginId(), e);
+                        }
+                    }
+                } catch (final RuntimeException ignored) {
+                }
+            }
 
             final Throwable cause = ex.getCause();
             if (cause instanceof final PluginLifecycleException e2) {
@@ -540,9 +537,29 @@ public class PluginManager implements IPluginManager {
                 }
                 return node;
             } catch (final PluginLifecycleException e) {
+                // cleanup: unload any implicitly-loaded dependencies and possibly this plugin
+                for (final INode d : res.getNodes()) {
+                    final IPluginContext dctx = this.ctxMgr.getPluginContext(d.getPluginId());
+                    if (dctx != null && dctx.getStateSpec() == null && dctx.getState().isLoaded()) {
+                        try {
+                            this.unloadPlugin(d.getPluginId());
+                        } catch (final PluginLifecycleException ex2) {
+                            log.error("Failed to unload dependency after enable failure: {}", d.getPluginId(), ex2);
+                        }
+                    }
+                }
+
+                if (ctx.getStateSpec() == null && ctx.getState().isLoaded()) {
+                    try {
+                        this.unloadPlugin(node.getPluginId());
+                    } catch (final PluginLifecycleException ex2) {
+                        log.error("Failed to unload plugin after enable failure: {}", node.getPluginId(), ex2);
+                    }
+                }
+
                 throw new RuntimeException(e);
             }
-        });
+        }, this.executor);
     }
 
     public void enablePluginInternal(final PluginContext ctx) throws PluginLifecycleException {
