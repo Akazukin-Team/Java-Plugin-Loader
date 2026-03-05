@@ -11,12 +11,10 @@ dependencies {
     libFatjar project(':loader:api')
     libFatjar project(':loader:impl')
 
-    libClasspath libs.akz.util
-    libClasspath libs.akz.event
-    libClasspath libs.akz.service
+    implementation libs.akz.util
+    implementation libs.akz.event
+    implementation libs.akz.service
 
-    libClasspath libs.slf4j
-    libClasspath libs.logback
-
-    libClasspath libs.gson
+    implementation libs.slf4j
+    compileOnly libs.logback
 }

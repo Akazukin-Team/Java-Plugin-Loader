@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    compileOnly project(":loader:api")
+    implementation project(":loader:api")
 
     compileOnly libs.slf4j
     compileOnly libs.akz.event
