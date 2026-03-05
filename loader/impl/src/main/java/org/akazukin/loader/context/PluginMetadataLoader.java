@@ -1,7 +1,7 @@
 package org.akazukin.loader.context;
 
-import org.akazukin.loader.api.IPluginMetadata;
-import org.akazukin.loader.api.dependency.IPluginDependency;
+import org.akazukin.loader.api.context.IPluginMetadata;
+import org.akazukin.loader.api.context.dependency.IPluginDependency;
 import org.akazukin.loader.context.dependency.PluginDependency;
 import org.akazukin.semver.parser.ISemverRangeParser;
 import org.akazukin.semver.parser.SemverRangeParser;

@@ -1,4 +1,4 @@
-package org.akazukin.loader.api;
+package org.akazukin.loader.api.context;
 
 /**
  * Base plugin interface defining plugin lifecycle.

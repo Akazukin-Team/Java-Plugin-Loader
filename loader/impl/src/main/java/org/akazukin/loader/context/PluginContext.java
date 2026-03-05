@@ -4,11 +4,11 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-import org.akazukin.loader.api.IPlugin;
-import org.akazukin.loader.api.IPluginContext;
-import org.akazukin.loader.api.IPluginMetadata;
-import org.akazukin.loader.api.PluginDynamicState;
-import org.akazukin.loader.api.PluginState;
+import org.akazukin.loader.api.context.IPlugin;
+import org.akazukin.loader.api.context.IPluginContext;
+import org.akazukin.loader.api.context.IPluginMetadata;
+import org.akazukin.loader.api.context.PluginDynamicState;
+import org.akazukin.loader.api.context.PluginState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

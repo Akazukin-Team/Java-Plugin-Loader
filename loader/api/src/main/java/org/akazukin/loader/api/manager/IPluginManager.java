@@ -1,5 +1,7 @@
-package org.akazukin.loader.api;
+package org.akazukin.loader.api.manager;
 
+import org.akazukin.loader.api.context.IPlugin;
+import org.akazukin.loader.api.context.IPluginMetadata;
 import org.akazukin.loader.api.exception.PluginLifecycleException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

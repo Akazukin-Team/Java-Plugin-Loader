@@ -1,4 +1,4 @@
-package org.akazukin.loader.api.dependency.analyze;
+package org.akazukin.loader.api.context.dependency.analyze;
 
 public interface IAnalyzeResult {
     IAnalyzeResult[] EMPTY_ARR = new IAnalyzeResult[0];

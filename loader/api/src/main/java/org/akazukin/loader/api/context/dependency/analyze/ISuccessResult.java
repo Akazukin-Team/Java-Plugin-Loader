@@ -1,6 +1,6 @@
-package org.akazukin.loader.api.dependency.analyze;
+package org.akazukin.loader.api.context.dependency.analyze;
 
-import org.akazukin.loader.api.dependency.IDependencyNode;
+import org.akazukin.loader.api.context.dependency.IDependencyNode;
 
 public interface ISuccessResult extends IAnalyzeResult {
     @Override

@@ -1,4 +1,4 @@
-package org.akazukin.loader.api.dependency;
+package org.akazukin.loader.api.context.dependency;
 
 import org.akazukin.semver.range.ISemverRange;
 

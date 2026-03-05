@@ -4,7 +4,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-import org.akazukin.loader.api.IPluginContext;
+import org.akazukin.loader.api.context.IPluginContext;
 import org.akazukin.loader.api.event.events.IPrePluginEnableEvent;
 import org.jetbrains.annotations.NotNull;
 

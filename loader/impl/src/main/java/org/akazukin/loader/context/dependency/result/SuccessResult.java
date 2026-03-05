@@ -1,8 +1,8 @@
 package org.akazukin.loader.context.dependency.result;
 
 import lombok.Getter;
-import org.akazukin.loader.api.dependency.IDependencyNode;
-import org.akazukin.loader.api.dependency.analyze.ISuccessResult;
+import org.akazukin.loader.api.context.dependency.IDependencyNode;
+import org.akazukin.loader.api.context.dependency.analyze.ISuccessResult;
 
 import java.util.Arrays;
 

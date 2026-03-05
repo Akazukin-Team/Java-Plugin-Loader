@@ -1,6 +1,6 @@
 package org.akazukin.loader.api.event.events;
 
-import org.akazukin.loader.api.IPluginContext;
+import org.akazukin.loader.api.context.IPluginContext;
 
 public interface IPostPluginUnloadEvent extends IPluginLifecycleEvent {
     IPluginContext getPluginContext();

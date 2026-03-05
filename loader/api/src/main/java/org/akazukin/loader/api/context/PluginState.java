@@ -1,4 +1,4 @@
-package org.akazukin.loader.api;
+package org.akazukin.loader.api.context;
 
 import lombok.AccessLevel;
 import lombok.Getter;

@@ -3,7 +3,7 @@ package org.akazukin.loader.api.exception;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
-import org.akazukin.loader.api.dependency.analyze.IAnalyzeResult;
+import org.akazukin.loader.api.context.dependency.analyze.IAnalyzeResult;
 
 import java.io.Serial;
 

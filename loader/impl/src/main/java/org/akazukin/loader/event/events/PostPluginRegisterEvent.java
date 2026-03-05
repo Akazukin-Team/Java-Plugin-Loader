@@ -3,7 +3,7 @@ package org.akazukin.loader.event.events;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
-import org.akazukin.loader.api.IPluginContext;
+import org.akazukin.loader.api.context.IPluginContext;
 import org.akazukin.loader.api.event.events.IPostPluginRegisterEvent;
 import org.jetbrains.annotations.NotNull;
 

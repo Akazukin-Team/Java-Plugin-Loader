@@ -1,7 +1,7 @@
 package org.akazukin.loader.manager;
 
-import org.akazukin.loader.api.IPluginResolver;
-import org.akazukin.loader.api.dependency.IPluginDependency;
+import org.akazukin.loader.api.context.dependency.IPluginDependency;
+import org.akazukin.loader.api.manager.IPluginResolver;
 import org.akazukin.loader.context.PluginContext;
 import org.akazukin.loader.context.PluginContextManager;
 import org.akazukin.semver.range.ISemverRange;

@@ -3,7 +3,7 @@ package org.akazukin.loader.context.dependency;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
-import org.akazukin.loader.api.dependency.IPluginDependency;
+import org.akazukin.loader.api.context.dependency.IPluginDependency;
 import org.akazukin.semver.range.ISemverRange;
 import org.jetbrains.annotations.Nullable;
 

@@ -4,9 +4,9 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.akazukin.loader.api.ILoaderConfig;
-import org.akazukin.loader.api.IPluginLoader;
-import org.akazukin.loader.api.IPluginManager;
-import org.akazukin.loader.api.IPluginMetadata;
+import org.akazukin.loader.api.context.IPluginMetadata;
+import org.akazukin.loader.api.manager.IPluginLoader;
+import org.akazukin.loader.api.manager.IPluginManager;
 import org.akazukin.loader.context.PluginMetadataLoader;
 import org.jetbrains.annotations.NotNull;
 

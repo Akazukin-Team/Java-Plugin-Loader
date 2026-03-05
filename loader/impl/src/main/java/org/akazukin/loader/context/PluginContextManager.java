@@ -3,9 +3,9 @@ package org.akazukin.loader.context;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
-import org.akazukin.loader.api.IPlugin;
-import org.akazukin.loader.api.IPluginContext;
-import org.akazukin.loader.api.IPluginMetadata;
+import org.akazukin.loader.api.context.IPlugin;
+import org.akazukin.loader.api.context.IPluginContext;
+import org.akazukin.loader.api.context.IPluginMetadata;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URL;

@@ -1,6 +1,6 @@
 package org.akazukin.loader.api.exception;
 
-import org.akazukin.loader.api.PluginState;
+import org.akazukin.loader.api.context.PluginState;
 
 import java.io.Serial;
 

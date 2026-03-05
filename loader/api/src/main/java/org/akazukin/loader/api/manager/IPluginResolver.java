@@ -1,5 +1,6 @@
-package org.akazukin.loader.api;
+package org.akazukin.loader.api.manager;
 
+import org.akazukin.loader.api.context.IPluginContext;
 import org.akazukin.semver.range.ISemverRange;
 import org.jetbrains.annotations.Nullable;
 

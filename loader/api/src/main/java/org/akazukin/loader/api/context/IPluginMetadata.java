@@ -1,6 +1,6 @@
-package org.akazukin.loader.api;
+package org.akazukin.loader.api.context;
 
-import org.akazukin.loader.api.dependency.IPluginDependency;
+import org.akazukin.loader.api.context.dependency.IPluginDependency;
 import org.akazukin.semver.data.ISemVer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

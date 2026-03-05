@@ -2,7 +2,7 @@ package org.akazukin.loader.context;
 
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
-import org.akazukin.loader.api.IPluginMetadata;
+import org.akazukin.loader.api.context.IPluginMetadata;
 
 import java.io.IOException;
 import java.net.URL;
