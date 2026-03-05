@@ -30,7 +30,7 @@ public class Loader implements ILoader {
 
         {
             this.loader = new PluginLoader(cfg, this.pluginMgr);
-            this.loader.loadPlugins();
+            this.loader.registerPlugins();
         }
     }
 }
