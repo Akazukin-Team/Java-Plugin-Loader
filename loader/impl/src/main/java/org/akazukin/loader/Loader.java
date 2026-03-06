@@ -29,7 +29,7 @@ public class Loader implements ILoader {
             this.ctxMgr = new PluginContextManager(parentLoader);
         }
         this.pluginResolver = new PluginResolver(this.ctxMgr);
-        this.pluginMgr = new PluginManager(this.eventMgr, this.pluginResolver, this.ctxMgr);
+        this.pluginMgr = new PluginManager(this, this.eventMgr, this.pluginResolver, this.ctxMgr);
 
         {
             this.loader = new PluginLoader(cfg, this.pluginMgr);
