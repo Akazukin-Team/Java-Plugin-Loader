@@ -251,6 +251,11 @@ public class PluginManager implements IPluginManager {
     public void enableAll() {
         for (final String pluginId : this.getPluginIds()) {
             try {
+                final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
+                if (ctx == null || ctx.getState().isEnabled()) {
+                    continue;
+                }
+
                 this.enablePlugin(pluginId);
             } catch (final PluginLifecycleException e) {
                 log.error("Failed to enable plugin: " + pluginId, e);
@@ -262,6 +267,11 @@ public class PluginManager implements IPluginManager {
     public void loadAll() {
         for (final String pluginId : this.getPluginIds()) {
             try {
+                final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
+                if (ctx == null || ctx.getState().isLoaded()) {
+                    continue;
+                }
+
                 this.loadPlugin(pluginId);
             } catch (final PluginLifecycleException e) {
                 log.error("Failed to load plugin: " + pluginId, e);
@@ -271,20 +281,18 @@ public class PluginManager implements IPluginManager {
 
     @Override
     public synchronized void unloadAll() {
-        final CompletableFuture<?>[] tasks = Arrays.stream(this.pluginResolver.getAllPlugins())
-                .map(ctx -> CompletableFuture.runAsync(() -> {
-                    try {
-                        if (!ctx.getState().isLoaded()) {
-                            return;
-                        }
+        for (final String pluginId : this.getPluginIds()) {
+            try {
+                final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
+                if (ctx == null || !ctx.getState().isLoaded()) {
+                    return;
+                }
 
-                        this.unloadPlugin(ctx.getMetadata().getId());
-                    } catch (final PluginLifecycleException e) {
-                        log.error("Failed to unload plugin: " + ctx.getMetadata().getId(), e);
-                    }
-                }))
-                .toArray(CompletableFuture[]::new);
-        CompletableFuture.allOf(tasks).join();
+                this.unloadPlugin(ctx.getMetadata().getId());
+            } catch (final PluginLifecycleException e) {
+                log.error("Failed to load plugin: " + pluginId, e);
+            }
+        }
     }
 
     private void loadPluginInternal(@NotNull final INode node) throws PluginLifecycleException {
@@ -313,7 +321,7 @@ public class PluginManager implements IPluginManager {
                         futures.add(CompletableFuture.runAsync(() -> {
                             try {
                                 final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                                if (!depCtx.getState().isLoaded()) {
+                                if (depCtx.getState().isLoaded()) {
                                     return;
                                 }
 
@@ -504,7 +512,7 @@ public class PluginManager implements IPluginManager {
                         futures.add(CompletableFuture.runAsync(() -> {
                             try {
                                 final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                                if (depCtx.getState().isLoaded()) {
+                                if (depCtx.getState().isEnabled()) {
                                     return;
                                 }
 
