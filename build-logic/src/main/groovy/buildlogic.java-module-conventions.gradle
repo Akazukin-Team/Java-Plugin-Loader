@@ -3,6 +3,7 @@ plugins {
     id 'buildlogic.java-toolchain-conventions'
     id 'buildlogic.java-repository-conventions'
     id 'buildlogic.java-test-conventions'
+    id 'buildlogic.java-library-fatjar-conventions'
 
     id 'java-library'
 }

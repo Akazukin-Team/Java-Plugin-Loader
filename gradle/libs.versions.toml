@@ -18,6 +18,7 @@ gradle-versions = "0.52.0"
 jmh-pl = "0.7.3"
 graalvm = "0.11.4"
 runTask = "2.2.3"
+shadow = "9.3.2"
 
 
 [libraries]
@@ -42,3 +43,4 @@ gradle-versions = { module = "com.github.ben-manes:gradle-versions-plugin", vers
 jmh-pl = { module = "me.champeau.jmh:me.champeau.jmh.gradle.plugin", version.ref = "jmh-pl" }
 graalvm = { module = "org.graalvm.buildtools.native:org.graalvm.buildtools.native.gradle.plugin", version.ref = "graalvm" }
 runTask = { module = "xyz.jpenilla:run-task", version.ref = "runTask" }
+shadow = { module = "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin", version.ref = "shadow" }
