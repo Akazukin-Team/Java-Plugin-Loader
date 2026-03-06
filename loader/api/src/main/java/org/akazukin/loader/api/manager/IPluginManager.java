@@ -4,12 +4,13 @@ import org.akazukin.loader.api.context.IPluginMetadata;
 import org.akazukin.loader.api.exception.PluginLifecycleException;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Closeable;
 import java.net.URL;
 
 /**
  * Public API for plugin management and service orchestration.
  */
-public interface IPluginManager {
+public interface IPluginManager extends Closeable {
     void loadPlugin(@NotNull String pluginId) throws PluginLifecycleException;
 
     void enablePlugin(@NotNull String pluginId) throws PluginLifecycleException;
@@ -27,6 +28,4 @@ public interface IPluginManager {
     void loadAll();
 
     void unloadAll();
-
-    void shutdown();
 }

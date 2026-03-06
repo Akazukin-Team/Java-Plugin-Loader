@@ -1,7 +1,6 @@
 package org.akazukin.loader.manager;
 
 import lombok.AccessLevel;
-import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.akazukin.event.EventManager;
@@ -68,6 +67,11 @@ public class PluginManager implements IPluginManager {
         this.pluginResolver = pluginResolver;
         this.ctxMgr = ctxMgr;
         this.depResolver = new DependencyMetadataResolver(this.ctxMgr);
+    }
+
+    @Override
+    public void close() {
+        this.unloadAll();
     }
 
     private void unloadPluginInternal(final @NotNull INode upperNode) {
@@ -279,12 +283,6 @@ public class PluginManager implements IPluginManager {
                 }))
                 .toArray(CompletableFuture[]::new);
         CompletableFuture.allOf(tasks).join();
-    }
-
-    @Override
-    @SneakyThrows
-    public void shutdown() {
-        this.unloadAll();
     }
 
     private void loadPluginInternal(@NotNull final INode node) throws PluginLifecycleException {
