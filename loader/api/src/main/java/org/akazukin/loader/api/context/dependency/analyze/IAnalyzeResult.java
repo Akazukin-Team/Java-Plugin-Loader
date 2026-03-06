@@ -4,4 +4,6 @@ public interface IAnalyzeResult {
     IAnalyzeResult[] EMPTY_ARR = new IAnalyzeResult[0];
 
     boolean isSuccess();
+
+    String toStringMultiLines();
 }

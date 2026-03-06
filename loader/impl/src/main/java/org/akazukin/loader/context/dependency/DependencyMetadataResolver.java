@@ -80,7 +80,7 @@ public class DependencyMetadataResolver {
         }
 
         cache.visited.add(pluginId);
-        final Set<Node> nodes = new HashSet<>();
+        final Set<IDependencyNode> nodes = new HashSet<>();
         final Map<String, IAnalyzeResult> visited = new HashMap<>();
         for (final IPluginDependency dep : meta.getDependencies()) {
             final ResolverCache newCache = cache.clone();
@@ -93,7 +93,7 @@ public class DependencyMetadataResolver {
             }
 
             visited.putAll(res.visited);
-            nodes.add(new Node(dep.getId(), res.result));
+            nodes.add(new DependencyNode(dep.getId(), res.result, dep.isRequired()));
         }
 
         {
@@ -120,18 +120,18 @@ public class DependencyMetadataResolver {
             cache.cache.put(pluginId, res);
             return res;
         }
-
         cache.visited.add(pluginId);
+
         final Set<IDependencyNode> nodes = new HashSet<>();
-        for (final IPluginContext c : this.containers.getContexts()) {
-            for (final IPluginDependency dep : c.getMetadata().getDependencies()) {
+        for (final IPluginContext ctx : this.containers.getContexts()) {
+            for (final IPluginDependency dep : ctx.getMetadata().getDependencies()) {
                 if (!pluginId.equals(dep.getId())
                         || !dep.getVersionRange().isSuitable(meta.getVersion().getVersionCore())) {
                     continue;
                 }
 
-                final IAnalyzeResult res = this.resolveUpper(c.getMetadata().getId(), cache.clone());
-                nodes.add(new DependencyNode(c.getMetadata().getId(), res, dep.isRequired()));
+                final IAnalyzeResult res = this.resolveUpper(ctx.getMetadata().getId(), cache.clone());
+                nodes.add(new DependencyNode(ctx.getMetadata().getId(), res, dep.isRequired()));
             }
         }
 

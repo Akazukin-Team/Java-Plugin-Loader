@@ -43,7 +43,7 @@ public class PluginClassLoader extends URLClassLoader {
                 }
             }
 
-            throw new RuntimeException(e);
+            throw new ClassNotFoundException(e.getMessage());
         }
     }
 

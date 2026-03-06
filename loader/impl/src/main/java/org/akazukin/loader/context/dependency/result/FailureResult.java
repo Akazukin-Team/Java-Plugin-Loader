@@ -24,4 +24,10 @@ public abstract class FailureResult extends AnalyzeResult implements IFailureRes
                 + ", message='" + this.message + '\''
                 + '}';
     }
+
+    @Override
+    public String toStringMultiLines() {
+        return "Result: Failure\n"
+                + "Message: " + this.getMessage();
+    }
 }

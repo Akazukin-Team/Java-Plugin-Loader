@@ -5,12 +5,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.akazukin.semver.data.IVersionCore;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(setterPrefix = "set")
+@Slf4j
 public final class SemverRange implements ISemverRange {
     public static final SemverRange ALL = new SemverRange(null, null);
 
@@ -36,7 +38,7 @@ public final class SemverRange implements ISemverRange {
                 sb.append(" ");
             }
 
-            sb.append("<");
+            sb.append(">");
             if (this.getUpperBound().isContains()) {
                 sb.append("=");
             }
@@ -48,14 +50,18 @@ public final class SemverRange implements ISemverRange {
     @Override
     public boolean isSuitable(final IVersionCore version) {
         if (this.lowerBound != null) {
-            if (!this.lowerBound.isLower(version)
-                    && !(this.lowerBound.isContains() && this.lowerBound.getBound().equals(version))) {
+            if (this.lowerBound.isLower(version)
+                    || (!this.lowerBound.isContains() && !this.lowerBound.getBound().equals(version))) {
+                log.debug("Version {} is not suitable for range {}, lower", version, this);
                 return false;
             }
         }
         if (this.upperBound != null) {
-            return this.upperBound.isGreater(version)
-                    || this.upperBound.isContains() && this.upperBound.getBound().equals(version);
+            if (this.upperBound.isGreater(version)
+                    || (!this.upperBound.isContains() && !this.upperBound.getBound().equals(version))) {
+                log.debug("Version {} is not suitable for range {}, upper", version, this);
+                return false;
+            }
         }
         return true;
     }

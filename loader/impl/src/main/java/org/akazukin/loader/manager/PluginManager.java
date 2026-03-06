@@ -271,7 +271,7 @@ public class PluginManager implements IPluginManager {
                     log.error("Failed to unload plugin, but force unloaded: " + meta.getId(), ex);
                 }
 
-                throw new PluginDynamicsLifecycleException("Failed to load plugin: " + meta.getId(), meta.getId(),
+                throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to load plugin: " + meta.getId(),
                         PluginState.NONE, PluginState.LOADED,
                         e);
             }
@@ -282,7 +282,7 @@ public class PluginManager implements IPluginManager {
     public void enablePlugin(@NotNull final String pluginId) throws PluginLifecycleException {
         final INode node = this.depResolver.getLowerNode(pluginId);
         if (!node.getResult().isSuccess()) {
-            throw new PluginDependencyLoadException(pluginId, node.getResult());
+            throw new PluginDependencyLoadException(node);
         }
 
         this.enableNode(node, new LoadCache()).join();
@@ -531,7 +531,7 @@ public class PluginManager implements IPluginManager {
                 synchronized (cache.processed) {
                     if (cache.processed.contains(node.getPluginId())) {
                         if (!ctx.getState().isEnabled()) {
-                            throw new PluginLifecycleException("Plugin was tried to enable but already failed: " + node.getPluginId(), node.getPluginId());
+                            throw new PluginLifecycleException(node.getPluginId(), "Plugin was tried to enable but already failed: " + node.getPluginId());
                         }
                         log.debug(node.getPluginId() + " was tried to enabling; skipped.");
                     } else {
@@ -587,23 +587,24 @@ public class PluginManager implements IPluginManager {
                 }
 
                 {
-                    final IAnalyzeResult res = this.depResolver.getLowerNode(meta.getId()).getResult();
+                    final INode node = this.depResolver.getLowerNode(meta.getId());
+                    final IAnalyzeResult res = node.getResult();
                     if (!res.isSuccess()) {
-                        throw new PluginDependencyLoadException(meta.getId(), res);
+                        throw new PluginDependencyLoadException(node);
                     }
 
                     final ISuccessResult res2 = (ISuccessResult) res;
-                    for (final IDependencyNode node : res2.getNodes()) {
-                        if (node.getResult().isSuccess()) {
-                            final IPluginContext dep = this.pluginResolver.findById(node.getPluginId());
+                    for (final IDependencyNode depNode : res2.getNodes()) {
+                        if (depNode.getResult().isSuccess()) {
+                            final IPluginContext dep = this.pluginResolver.findById(depNode.getPluginId());
                             if (dep != null) {
-                                dep.getClassLoader();
+                                ctx.getClassLoader().addParentLoader(dep.getClassLoader());
                                 continue;
                             }
                         }
 
-                        if (node.isRequired()) {
-                            throw new PluginDependencyLoadException(meta.getId(), node.getResult());
+                        if (depNode.isRequired()) {
+                            throw new PluginDependencyLoadException(depNode);
                         }
                     }
                 }
@@ -619,7 +620,7 @@ public class PluginManager implements IPluginManager {
                 }
             } catch (final Exception e) {
                 log.error("Failed to enable plugin: " + meta.getId(), e);
-                throw new PluginDynamicsLifecycleException("Failed to enable plugin: " + meta.getId(), meta.getId(),
+                throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to enable plugin: " + meta.getId(),
                         PluginState.LOADED, PluginState.ENABLED,
                         e);
             } finally {

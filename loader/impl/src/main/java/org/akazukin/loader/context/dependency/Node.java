@@ -7,6 +7,9 @@ import org.akazukin.loader.api.context.dependency.INode;
 import org.akazukin.loader.api.context.dependency.analyze.IAnalyzeResult;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Getter
 public class Node implements INode {
@@ -24,5 +27,13 @@ public class Node implements INode {
                 + "pluginId='" + this.pluginId + '\''
                 + ", result=" + this.result
                 + '}';
+    }
+
+    @Override
+    public String toStringMultiLines() {
+        return "PluginId: " + this.pluginId + "\n"
+                + Arrays.stream(this.result.toStringMultiLines().split("\n"))
+                .map(s -> " " + s)
+                .collect(Collectors.joining("\n"));
     }
 }

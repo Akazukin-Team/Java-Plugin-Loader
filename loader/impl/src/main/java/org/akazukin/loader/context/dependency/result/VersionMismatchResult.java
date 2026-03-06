@@ -17,4 +17,11 @@ public class VersionMismatchResult extends FailureResult {
         this.range = range;
         this.version = version;
     }
+
+    @Override
+    public String toStringMultiLines() {
+        return super.toStringMultiLines() + "\n"
+                + "Range: " + this.range + "\n"
+                + "Version: " + this.version;
+    }
 }

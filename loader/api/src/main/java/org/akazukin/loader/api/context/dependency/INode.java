@@ -8,4 +8,6 @@ public interface INode {
     String getPluginId();
 
     IAnalyzeResult getResult();
+
+    String toStringMultiLines();
 }
