@@ -15,14 +15,14 @@ public enum PluginState {
 
     String name;
     int order;
-    boolean preLoaded;
+    boolean registered;
     boolean loaded;
     boolean enabled;
 
-    PluginState(final String name, final int order, final boolean preLoaded, final boolean loaded, final boolean enabled) {
+    PluginState(final String name, final int order, final boolean registered, final boolean loaded, final boolean enabled) {
         this.name = name;
         this.order = order;
-        this.preLoaded = preLoaded;
+        this.registered = registered;
         this.loaded = loaded;
         this.enabled = enabled;
     }

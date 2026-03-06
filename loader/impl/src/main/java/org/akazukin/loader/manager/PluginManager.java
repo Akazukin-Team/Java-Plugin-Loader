@@ -96,7 +96,14 @@ public class PluginManager implements IPluginManager {
                 {
                     final Set<CompletableFuture<Void>> futures = new HashSet<>();
                     for (final IDependencyNode dep : sRes.getNodes()) {
-                        futures.add(CompletableFuture.runAsync(() -> this.disablePluginInternal(dep)));
+                        futures.add(CompletableFuture.runAsync(() -> {
+                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                            if (!depCtx.getState().isLoaded()) {
+                                return;
+                            }
+
+                            this.unloadPluginInternal(dep);
+                        }));
                     }
                     CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
@@ -301,9 +308,15 @@ public class PluginManager implements IPluginManager {
                     //  巻き戻し処理まで保持する
 
                     final IDependencyNode[] deps = sRes.getNodes();
+
                     for (final IDependencyNode dep : deps) {
                         futures.add(CompletableFuture.runAsync(() -> {
                             try {
+                                final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                                if (!depCtx.getState().isLoaded()) {
+                                    return;
+                                }
+
                                 this.loadPluginInternal(dep);
                             } catch (final PluginLifecycleException e) {
                                 throw new RuntimeException(e);
@@ -418,6 +431,11 @@ public class PluginManager implements IPluginManager {
                     final Set<CompletableFuture<Void>> futures = new HashSet<>();
                     for (final IDependencyNode dep : sRes.getNodes()) {
                         futures.add(CompletableFuture.runAsync(() -> {
+                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                            if (!depCtx.getState().isEnabled()) {
+                                return;
+                            }
+
                             this.disablePluginInternal(dep);
                         }));
                     }
@@ -485,6 +503,11 @@ public class PluginManager implements IPluginManager {
                     for (final IDependencyNode dep : deps) {
                         futures.add(CompletableFuture.runAsync(() -> {
                             try {
+                                final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                                if (depCtx.getState().isLoaded()) {
+                                    return;
+                                }
+
                                 this.loadPluginInternal(dep);
                             } catch (final PluginLifecycleException e) {
                                 throw new RuntimeException(e);
