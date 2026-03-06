@@ -70,7 +70,7 @@ public class PluginManager implements IPluginManager {
         this.depResolver = new DependencyMetadataResolver(this.ctxMgr);
     }
 
-    private void unloadPluginInternal(final @NotNull INode upperNode) throws PluginLifecycleException {
+    private void unloadPluginInternal(final @NotNull INode upperNode) {
         final PluginContext ctx = this.ctxMgr.getPluginContext(upperNode.getPluginId());
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + upperNode.getPluginId());
@@ -83,11 +83,7 @@ public class PluginManager implements IPluginManager {
             }
 
             if (ctx.getState().isEnabled()) {
-                try {
-                    this.disablePluginInternal(upperNode);
-                } catch (final PluginLifecycleException e) {
-                    log.error("Failed to disable plugin, but ignored: " + meta.getId(), e);
-                }
+                this.disablePluginInternal(upperNode);
             }
 
             {
@@ -100,13 +96,7 @@ public class PluginManager implements IPluginManager {
                 {
                     final Set<CompletableFuture<Void>> futures = new HashSet<>();
                     for (final IDependencyNode dep : sRes.getNodes()) {
-                        futures.add(CompletableFuture.runAsync(() -> {
-                            try {
-                                this.disablePluginInternal(dep);
-                            } catch (final PluginLifecycleException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }));
+                        futures.add(CompletableFuture.runAsync(() -> this.disablePluginInternal(dep)));
                     }
                     CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
@@ -403,7 +393,7 @@ public class PluginManager implements IPluginManager {
         }
     }
 
-    private void disablePluginInternal(final INode upperNode) throws PluginLifecycleException {
+    private void disablePluginInternal(final INode upperNode) {
         final PluginContext ctx = this.ctxMgr.getPluginContext(upperNode.getPluginId());
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + upperNode.getPluginId());
@@ -428,11 +418,7 @@ public class PluginManager implements IPluginManager {
                     final Set<CompletableFuture<Void>> futures = new HashSet<>();
                     for (final IDependencyNode dep : sRes.getNodes()) {
                         futures.add(CompletableFuture.runAsync(() -> {
-                            try {
-                                this.disablePluginInternal(dep);
-                            } catch (final PluginLifecycleException e) {
-                                throw new RuntimeException(e);
-                            }
+                            this.disablePluginInternal(dep);
                         }));
                     }
                     CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
@@ -560,21 +546,6 @@ public class PluginManager implements IPluginManager {
             } finally {
                 ctx.setDynamicState(PluginDynamicState.NONE);
             }
-        }
-    }
-
-    public static class LoadCache {
-        final Set<String> visited = new HashSet<>();
-        final Set<String> processed = new HashSet<>();
-        boolean success = true;
-
-        @Override
-        public LoadCache clone() {
-            final LoadCache cache = new LoadCache();
-            cache.visited.addAll(this.visited);
-            cache.processed.addAll(this.processed);
-            cache.success = this.success;
-            return cache;
         }
     }
 }
