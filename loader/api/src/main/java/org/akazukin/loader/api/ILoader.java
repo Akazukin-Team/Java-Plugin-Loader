@@ -5,7 +5,9 @@ import org.akazukin.loader.api.manager.IPluginLoader;
 import org.akazukin.loader.api.manager.IPluginManager;
 import org.akazukin.loader.api.manager.IPluginResolver;
 
-public interface ILoader {
+import java.io.Closeable;
+
+public interface ILoader extends Closeable {
     IEventManager getEventMgr();
 
     IPluginManager getPluginMgr();

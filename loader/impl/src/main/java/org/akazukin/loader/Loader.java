@@ -36,4 +36,9 @@ public class Loader implements ILoader {
             this.loader.registerPlugins();
         }
     }
+
+    @Override
+    public void close() {
+        this.pluginMgr.close();
+    }
 }

@@ -271,14 +271,16 @@ public class PluginManager implements IPluginManager {
 
     @Override
     public synchronized void unloadAll() {
-        final CompletableFuture<?>[] tasks = Arrays.stream(this.getPluginIds())
-                .map(this.ctxMgr::getPluginContext)
-                .filter(p -> p.getState().isLoaded())
-                .map(f -> CompletableFuture.runAsync(() -> {
+        final CompletableFuture<?>[] tasks = Arrays.stream(this.pluginResolver.getAllPlugins())
+                .map(ctx -> CompletableFuture.runAsync(() -> {
                     try {
-                        this.unloadPlugin(f.getMetadata().getId());
+                        if (!ctx.getState().isLoaded()) {
+                            return;
+                        }
+
+                        this.unloadPlugin(ctx.getMetadata().getId());
                     } catch (final PluginLifecycleException e) {
-                        log.error("Failed to unload plugin: " + f.getMetadata().getId(), e);
+                        log.error("Failed to unload plugin: " + ctx.getMetadata().getId(), e);
                     }
                 }))
                 .toArray(CompletableFuture[]::new);
