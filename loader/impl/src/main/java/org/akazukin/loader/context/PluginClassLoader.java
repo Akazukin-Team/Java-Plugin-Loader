@@ -4,7 +4,6 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.akazukin.loader.api.context.IPluginMetadata;
 
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -34,54 +33,18 @@ public class PluginClassLoader extends URLClassLoader {
 
     @Override
     protected Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
-        // キャッシュを確認
-        Class<?> cachedClass = this.classCache.get(name);
-        if (cachedClass != null) {
-            return cachedClass;
-        }
-
-        synchronized (this.getClassLoadingLock(name)) {
-            // ダブルチェック
-            cachedClass = this.classCache.get(name);
-            if (cachedClass != null) {
-                return cachedClass;
+        try {
+            return super.loadClass(name, resolve);
+        } catch (final ClassNotFoundException e) {
+            for (final ClassLoader parent : this.parentLoaders) {
+                try {
+                    return parent.loadClass(name);
+                } catch (final ClassNotFoundException ignored) {
+                }
             }
 
-            try {
-                // このClassLoaderで読み込む
-                final Class<?> clazz = this.findClass(name);
-                this.loadedClasses.add(name);
-                this.classCache.put(name, clazz);
-
-                if (resolve) {
-                    this.resolveClass(clazz);
-                }
-                return clazz;
-            } catch (final ClassNotFoundException e) {
-                // 親ClassLoaderで検索
-                for (final ClassLoader parentLoader : this.parentLoaders) {
-                    try {
-                        final Class<?> clazz = parentLoader.loadClass(name);
-                        this.classCache.put(name, clazz);
-                        return clazz;
-                    } catch (final ClassNotFoundException ignored) {
-                    }
-                }
-                throw new ClassNotFoundException(
-                        "Class not found: " + name + " in plugin: " + this.metadata.getId(), e);
-            }
+            throw new RuntimeException(e);
         }
-    }
-
-    public Set<String> getLoadedClasses() {
-        return Set.copyOf(this.loadedClasses);
-    }
-
-    @Override
-    public void close() throws IOException {
-        this.classCache.clear();
-        this.loadedClasses.clear();
-        super.close();
     }
 
     @Override

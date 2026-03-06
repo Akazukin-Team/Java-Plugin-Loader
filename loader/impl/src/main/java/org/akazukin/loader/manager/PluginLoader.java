@@ -38,26 +38,39 @@ public class PluginLoader implements IPluginLoader {
     }
 
     public void registerPlugins() {
-        for (final String path : this.cfg.getPluginPaths()) {
-            final File file = new File(path);
-            if (!file.exists()) {
-                return;
-            }
+        if (this.cfg.getPluginPaths() != null) {
+            for (final String path : this.cfg.getPluginPaths()) {
+                final File file = new File(path).getAbsoluteFile();
+                log.info("Register plugin: " + file.getPath());
 
-            if (file.isDirectory()) {
-                this.registerPluginFromFolder(path);
-            } else {
-                this.registerPluginFromZip(path);
+                if (!file.exists()) {
+                    log.debug("Path not found, skipping: " + file.getPath());
+                    return;
+                }
+
+                if (file.isDirectory()) {
+                    log.debug("Path is directory, scanning: " + file.getPath());
+                    this.registerPluginFromFolder(file.getPath());
+                } else {
+                    log.debug("Path is file, scanning: " + file.getPath());
+                    this.registerPluginFromZip(file.getPath());
+                }
             }
         }
 
-        for (final String path : this.cfg.getPluginDirectories()) {
-            final File file = new File(path);
-            if (!file.exists() || !file.isDirectory()) {
-                return;
-            }
+        if (this.cfg.getPluginDirectories() != null) {
+            for (final String path : this.cfg.getPluginDirectories()) {
+                final File file = new File(path).getAbsoluteFile();
+                log.info("Register plugin directory: " + file.getPath());
 
-            this.registerPluginsInDirectory(path);
+                if (!file.exists() || !file.isDirectory()) {
+                    log.debug("Path not found, skipping: " + file.getPath());
+                    return;
+                }
+
+                log.debug("Scanning directory: " + file.getPath());
+                this.registerPluginsInDirectory(file.getPath());
+            }
         }
 
         if (this.cfg.isLoadFromClassPath()) {
@@ -66,13 +79,15 @@ public class PluginLoader implements IPluginLoader {
     }
 
     private void registerPluginFromZip(final String path) {
-        try (final ZipFile zipFile = new ZipFile(path)) {
+        final File file = new File(path).getAbsoluteFile();
+
+        try (final ZipFile zipFile = new ZipFile(file)) {
             final ZipEntry entry = zipFile.getEntry(PROPERTIES);
 
             if (entry != null) {
                 try (final InputStream is = zipFile.getInputStream(entry)) {
                     final IPluginMetadata meta = this.metadataLoader.loadFromResource(is);
-                    this.pluginMgr.registerPlugin(URI.create(path).toURL(), meta);
+                    this.pluginMgr.registerPlugin(file.toURI().toURL(), meta);
                 }
             } else {
                 throw new RuntimeException("Entry not found: " + PROPERTIES);
@@ -87,9 +102,13 @@ public class PluginLoader implements IPluginLoader {
         try {
             final Enumeration<URL> resources = loader.getResources(PROPERTIES);
             while (resources.hasMoreElements()) {
+                log.debug("Scanning classpath: " + resources.nextElement());
+
                 final URL res = resources.nextElement();
                 final String protocol = res.getProtocol();
                 if ("jar".equals(protocol)) {
+                    log.debug("Found jar, scanning: " + res);
+
                     final String path = res.getPath();
                     final int idx = path.indexOf('!');
                     if (idx <= 0) {
@@ -104,6 +123,8 @@ public class PluginLoader implements IPluginLoader {
                         log.error("Failed to load plugin from jar: " + jarUrlStr, ex);
                     }
                 } else if ("file".equals(protocol)) {
+                    log.debug("Found file, scanning: " + res);
+
                     try {
                         final URI uri = res.toURI();
                         final Path p = Paths.get(uri);
@@ -146,14 +167,22 @@ public class PluginLoader implements IPluginLoader {
 
         final File[] files = Objects.requireNonNull(folder.listFiles());
         for (final File f : files) {
-            if (f.isFile()) {
-                if (this.hasMetadataInZip(f)) {
-                    try {
-                        this.registerPluginFromZip(f.getAbsolutePath());
-                    } catch (final Exception e) {
-                        log.error("Failed to load plugin: " + f.getAbsolutePath(), e);
-                    }
-                }
+            log.debug("Scanning path: " + f.getAbsolutePath());
+
+            if (!f.isFile()) {
+                log.debug("File is not a file, skipping: " + f.getAbsolutePath());
+                continue;
+            }
+
+            if (!this.hasMetadataInZip(f)) {
+                log.debug("File is not a zip, skipping: " + f.getAbsolutePath());
+                continue;
+            }
+
+            try {
+                this.registerPluginFromZip(f.getAbsolutePath());
+            } catch (final Exception e) {
+                log.error("Failed to load plugin: " + f.getAbsolutePath(), e);
             }
         }
     }
