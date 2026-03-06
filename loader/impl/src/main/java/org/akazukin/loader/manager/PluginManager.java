@@ -45,8 +45,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Manages plugin lifecycle and service orchestration with lifecycle listener
@@ -54,13 +52,14 @@ import java.util.concurrent.Executors;
  */
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
+// TODO ExecutorServiceとCompletableFutureを使って
+//  非同期読み込みなどを実装すr
 public class PluginManager implements IPluginManager {
     ILoader loader;
     EventManager<IPluginLifecycleEvent> eventMgr;
     PluginResolver pluginResolver;
     PluginContextManager ctxMgr;
     DependencyMetadataResolver depResolver;
-    ExecutorService executor;
 
     public PluginManager(final ILoader loader, final EventManager<IPluginLifecycleEvent> eventMgr,
                          final PluginResolver pluginResolver, final PluginContextManager ctxMgr) {
@@ -69,10 +68,9 @@ public class PluginManager implements IPluginManager {
         this.pluginResolver = pluginResolver;
         this.ctxMgr = ctxMgr;
         this.depResolver = new DependencyMetadataResolver(this.ctxMgr);
-        this.executor = Executors.newWorkStealingPool(16);
     }
 
-    public synchronized void unloadPluginInternal(final @NotNull INode upperNode) throws PluginLifecycleException {
+    private void unloadPluginInternal(final @NotNull INode upperNode) throws PluginLifecycleException {
         final PluginContext ctx = this.ctxMgr.getPluginContext(upperNode.getPluginId());
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + upperNode.getPluginId());
@@ -292,7 +290,7 @@ public class PluginManager implements IPluginManager {
         this.unloadAll();
     }
 
-    public void loadPluginInternal(@NotNull final INode node) throws PluginLifecycleException {
+    private void loadPluginInternal(@NotNull final INode node) throws PluginLifecycleException {
         final PluginContext ctx = this.ctxMgr.getPluginContext(node.getPluginId());
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + node.getPluginId());
@@ -405,7 +403,7 @@ public class PluginManager implements IPluginManager {
         }
     }
 
-    public synchronized void disablePluginInternal(final INode upperNode) throws PluginLifecycleException {
+    private void disablePluginInternal(final INode upperNode) throws PluginLifecycleException {
         final PluginContext ctx = this.ctxMgr.getPluginContext(upperNode.getPluginId());
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + upperNode.getPluginId());
@@ -473,7 +471,7 @@ public class PluginManager implements IPluginManager {
                 .toArray(String[]::new);
     }
 
-    public void enablePluginInternal(final INode node) throws PluginLifecycleException {
+    private void enablePluginInternal(final INode node) throws PluginLifecycleException {
         final PluginContext ctx = this.ctxMgr.getPluginContext(node.getPluginId());
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + node.getPluginId());
