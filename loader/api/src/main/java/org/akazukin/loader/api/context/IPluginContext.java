@@ -19,7 +19,7 @@ public interface IPluginContext {
     @NotNull
     PluginState getState();
 
-    @NotNull
+    @Nullable
     PluginState getStateSpec();
 
     @NotNull
