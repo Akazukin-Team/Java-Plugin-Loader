@@ -5,4 +5,5 @@ plugins {
 dependencies {
     compileOnly libs.akz.util
     compileOnly libs.akz.event
+    compileOnly libs.akz.semver
 }

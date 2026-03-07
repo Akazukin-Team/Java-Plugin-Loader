@@ -2,7 +2,7 @@
 #App deps
 akz-util = "5.0.0-SNAPSHOT"
 akz-event = "3.0.0-SNAPSHOT"
-akz-service = "4.0.0"
+akz-semver = "1.0.0-SNAPSHOT"
 lombok = "1.18.42"
 jetbrains-annotation = "26.1.0"
 
@@ -25,7 +25,7 @@ shadow = "9.3.2"
 #App deps
 akz-util = { module = "org.akazukin:util", version.ref = "akz-util" }
 akz-event = { module = "org.akazukin:event", version.ref = "akz-event" }
-akz-service = { module = "org.akazukin:service", version.ref = "akz-service" }
+akz-semver = { module = "org.akazukin:semver", version.ref = "akz-semver" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 jetbrains-annotations = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotation" }
 
