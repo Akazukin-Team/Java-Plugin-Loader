@@ -78,7 +78,8 @@ public class PluginLoader implements IPluginLoader {
         }
     }
 
-    private void registerPluginFromZip(final String path) {
+    @Override
+    public void registerPluginFromZip(final String path) {
         final File file = new File(path).getAbsoluteFile();
 
         try (final ZipFile zipFile = new ZipFile(file)) {
@@ -97,7 +98,8 @@ public class PluginLoader implements IPluginLoader {
         }
     }
 
-    private void registerPluginsFromClasspath() {
+    @Override
+    public void registerPluginsFromClasspath() {
         final ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {
             final Enumeration<URL> resources = loader.getResources(PROPERTIES);
@@ -140,7 +142,8 @@ public class PluginLoader implements IPluginLoader {
         }
     }
 
-    private void registerPluginFromFolder(final String path) {
+    @Override
+    public void registerPluginFromFolder(final String path) {
         final File folder = new File(path);
         if (!folder.exists()) {
             throw new IllegalArgumentException("Path does not exist: " + path);
@@ -159,7 +162,8 @@ public class PluginLoader implements IPluginLoader {
         }
     }
 
-    private void registerPluginsInDirectory(final String path) {
+    @Override
+    public void registerPluginsInDirectory(final String path) {
         final File folder = new File(path);
         if (!folder.exists() || !folder.isDirectory()) {
             log.error("Path does not exist: " + path);
