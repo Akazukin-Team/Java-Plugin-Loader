@@ -24,8 +24,8 @@ public class PluginMetadata implements IPluginMetadata {
     IPluginDependency[] dependencies;
 
     public PluginMetadata(
-            @NotNull final String name,
             @NotNull final String id,
+            @NotNull final String name,
             @NotNull final String version,
             @Nullable final String description,
             @NotNull final String mainClass,

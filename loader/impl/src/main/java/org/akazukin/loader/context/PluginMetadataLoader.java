@@ -32,11 +32,11 @@ public final class PluginMetadataLoader {
         try {
             final Map<String, Object> map = this.yaml.load(is);
 
-            final String name = (String) map.get("name");
             final String id = (String) map.get("id");
+            final String name = (String) map.get("name");
             final String version = (String) map.get("version");
             final String description = (String) map.get("description");
-            final String mainClassName = (String) map.get("main");
+            final String mainClassName = (String) map.get("main-class");
 
             final Set<IPluginDependency> depsSet = new HashSet<>();
             final Object depsObj = map.get("dependencies");
@@ -52,8 +52,8 @@ public final class PluginMetadataLoader {
             final IPluginDependency[] dependencies = depsSet.toArray(IPluginDependency.EMPTY_ARR);
 
             return new PluginMetadata(
-                    name,
                     id,
+                    name,
                     version,
                     description,
                     mainClassName,

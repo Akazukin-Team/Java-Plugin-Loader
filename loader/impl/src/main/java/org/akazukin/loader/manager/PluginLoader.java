@@ -26,7 +26,7 @@ import java.util.zip.ZipFile;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class PluginLoader implements IPluginLoader {
-    private static final String PROPERTIES = "META-INF/plugin.yaml";
+    private static final String META_PATH = "META-INF/plugin.yaml";
     ILoaderConfig cfg;
     IPluginManager pluginMgr;
     PluginMetadataLoader metadataLoader;
@@ -83,7 +83,7 @@ public class PluginLoader implements IPluginLoader {
         final File file = new File(path).getAbsoluteFile();
 
         try (final ZipFile zipFile = new ZipFile(file)) {
-            final ZipEntry entry = zipFile.getEntry(PROPERTIES);
+            final ZipEntry entry = zipFile.getEntry(META_PATH);
 
             if (entry != null) {
                 try (final InputStream is = zipFile.getInputStream(entry)) {
@@ -91,7 +91,7 @@ public class PluginLoader implements IPluginLoader {
                     this.pluginMgr.registerPlugin(file.toURI().toURL(), meta);
                 }
             } else {
-                throw new RuntimeException("Entry not found: " + PROPERTIES);
+                throw new RuntimeException("Entry not found: " + META_PATH);
             }
         } catch (final IOException e) {
             throw new RuntimeException(e);
@@ -102,7 +102,7 @@ public class PluginLoader implements IPluginLoader {
     public void registerPluginsFromClasspath() {
         final ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {
-            final Enumeration<URL> resources = loader.getResources(PROPERTIES);
+            final Enumeration<URL> resources = loader.getResources(META_PATH);
             while (resources.hasMoreElements()) {
                 log.debug("Scanning classpath: " + resources.nextElement());
 
@@ -149,9 +149,9 @@ public class PluginLoader implements IPluginLoader {
             throw new IllegalArgumentException("Path does not exist: " + path);
         }
 
-        final File meta = new File(folder, PROPERTIES);
+        final File meta = new File(folder, META_PATH);
         if (!meta.exists() || !meta.isFile()) {
-            throw new IllegalArgumentException("File not found under: " + folder.getAbsolutePath() + ", file: " + PROPERTIES);
+            throw new IllegalArgumentException("File not found under: " + folder.getAbsolutePath() + ", file: " + META_PATH);
         }
 
         try (final InputStream is = Files.newInputStream(meta.toPath())) {
@@ -191,12 +191,12 @@ public class PluginLoader implements IPluginLoader {
         }
     }
 
-    private boolean hasMetadataInZip(final File jarFile) {
-        if (jarFile == null || !jarFile.exists() || !jarFile.isFile()) {
+    private boolean hasMetadataInZip(final File file) {
+        if (file == null || !file.exists() || !file.isFile()) {
             return false;
         }
-        try (final ZipFile zip = new ZipFile(jarFile)) {
-            final ZipEntry entry = zip.getEntry(PROPERTIES);
+        try (final ZipFile zip = new ZipFile(file)) {
+            final ZipEntry entry = zip.getEntry(META_PATH);
             return entry != null;
         } catch (final IOException e) {
             return false;
@@ -207,7 +207,9 @@ public class PluginLoader implements IPluginLoader {
         if (root == null) {
             return false;
         }
-        final File meta = new File(root, PROPERTIES);
+        final File meta = new File(root, META_PATH);
         return meta.exists() && meta.isFile();
     }
+
+
 }
