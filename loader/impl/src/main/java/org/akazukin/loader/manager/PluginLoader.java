@@ -26,7 +26,7 @@ import java.util.zip.ZipFile;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class PluginLoader implements IPluginLoader {
-    private static final String PROPERTIES = "META-INF/plugin.properties";
+    private static final String PROPERTIES = "META-INF/plugin.yaml";
     ILoaderConfig cfg;
     IPluginManager pluginMgr;
     PluginMetadataLoader metadataLoader;
