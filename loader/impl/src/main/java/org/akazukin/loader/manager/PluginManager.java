@@ -102,11 +102,17 @@ public class PluginManager implements IPluginManager {
                     for (final IDependencyNode dep : sRes.getNodes()) {
                         futures.add(CompletableFuture.runAsync(() -> {
                             final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                            if (!depCtx.getState().isLoaded()) {
-                                return;
+                            if (depCtx == null) {
+                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
 
-                            this.unloadPluginInternal(dep);
+                            synchronized (depCtx) {
+                                if (!depCtx.getState().isLoaded()) {
+                                    return;
+                                }
+
+                                this.unloadPluginInternal(dep);
+                            }
                         }));
                     }
                     CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
@@ -321,11 +327,17 @@ public class PluginManager implements IPluginManager {
                         futures.add(CompletableFuture.runAsync(() -> {
                             try {
                                 final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                                if (depCtx.getState().isLoaded()) {
-                                    return;
+                                if (depCtx == null) {
+                                    throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                                 }
 
-                                this.loadPluginInternal(dep);
+                                synchronized (depCtx) {
+                                    if (depCtx.getState().isLoaded()) {
+                                        return;
+                                    }
+
+                                    this.loadPluginInternal(dep);
+                                }
                             } catch (final PluginLifecycleException e) {
                                 throw new RuntimeException(e);
                             }
@@ -440,11 +452,17 @@ public class PluginManager implements IPluginManager {
                     for (final IDependencyNode dep : sRes.getNodes()) {
                         futures.add(CompletableFuture.runAsync(() -> {
                             final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                            if (!depCtx.getState().isEnabled()) {
-                                return;
+                            if (depCtx == null) {
+                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
 
-                            this.disablePluginInternal(dep);
+                            synchronized (depCtx) {
+                                if (!depCtx.getState().isEnabled()) {
+                                    return;
+                                }
+
+                                this.disablePluginInternal(dep);
+                            }
                         }));
                     }
                     CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
@@ -512,11 +530,17 @@ public class PluginManager implements IPluginManager {
                         futures.add(CompletableFuture.runAsync(() -> {
                             try {
                                 final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                                if (depCtx.getState().isEnabled()) {
-                                    return;
+                                if (depCtx == null) {
+                                    throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                                 }
 
-                                this.loadPluginInternal(dep);
+                                synchronized (depCtx) {
+                                    if (depCtx.getState().isEnabled()) {
+                                        return;
+                                    }
+
+                                    this.loadPluginInternal(dep);
+                                }
                             } catch (final PluginLifecycleException e) {
                                 throw new RuntimeException(e);
                             }
