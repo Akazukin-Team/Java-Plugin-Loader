@@ -14,7 +14,10 @@ dependencies {
     libFatjar project(':loader:impl')
 
     api libs.slf4j
+
     api libs.akz.util
     api libs.akz.event
     api libs.akz.semver
+
+    api libs.yaml
 }

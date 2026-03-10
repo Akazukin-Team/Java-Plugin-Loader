@@ -5,18 +5,20 @@ import org.akazukin.loader.api.context.dependency.IPluginDependency;
 import org.akazukin.loader.context.dependency.PluginDependency;
 import org.akazukin.semver.parser.ISemverRangeParser;
 import org.akazukin.semver.parser.SemverRangeParser;
+import org.yaml.snakeyaml.Yaml;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Properties;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Loads plugin metadata from plugin.properties resource file.
  */
 public final class PluginMetadataLoader {
-    private static final String METADATA_FILE = "plugin.properties";
     private final ISemverRangeParser rangeParser;
+    Yaml yaml = new Yaml();
 
     public PluginMetadataLoader() {
         this(new SemverRangeParser());
@@ -26,71 +28,38 @@ public final class PluginMetadataLoader {
         this.rangeParser = rangeParser;
     }
 
-    public IPluginMetadata loadFromResource(final InputStream input) throws IOException {
-        try (final InputStream is = input) {
-            final Properties props = new Properties();
-            props.load(is);
-
-            try {
-                final String name = this.getRequiredProperty(props, "plugin.name");
-                final String id = this.getRequiredProperty(props, "plugin.id");
-                final String version = this.getRequiredProperty(props, "plugin.version");
-                final String description = props.getProperty("plugin.description");
-                final String mainClassName = this.getRequiredProperty(props, "plugin.main-class");
-
-                final IPluginDependency[] dependencies = this.parseDependencies(props.getProperty("plugin.dependencies"));
-
-                return new PluginMetadata(
-                        name,
-                        id,
-                        version,
-                        description,
-                        mainClassName,
-                        dependencies);
-            } catch (final IOException e) {
-                final String id = props.getProperty("plugin.id");
-                if (id == null || id.trim().isEmpty()) {
-                    throw e;
-                }
-                throw new IOException("Failed to load plugin metadata for '" + id + "': " + e.getMessage(), e);
-            }
-        }
-    }
-
-    private IPluginDependency[] parseDependencies(final String value) throws IOException {
-        if (value == null || value.trim().isEmpty()) {
-            return IPluginDependency.EMPTY_ARR;
-        }
-
+    public IPluginMetadata loadFromResource(final InputStream is) {
         try {
-            return Arrays.stream(value.split(";"))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .map(s -> {
-                        final String[] parts = s.split(":", 2);
-                        if (parts.length == 2) {
-                            try {
-                                return new PluginDependency(parts[0].trim(), this.rangeParser.parse(parts[1].trim()));
-                            } catch (final RuntimeException e) {
-                                throw new RuntimeException(new IOException("Failed to parse version range '" + parts[1].trim() + "' for dependency '" + parts[0].trim() + "'", e));
-                            }
-                        }
-                        return new PluginDependency(parts[0].trim());
-                    })
-                    .toArray(PluginDependency[]::new);
-        } catch (final RuntimeException e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            }
-            throw e;
-        }
-    }
+            final Map<String, Object> map = this.yaml.load(is);
 
-    private String getRequiredProperty(final Properties props, final String key) throws IOException {
-        final String value = props.getProperty(key);
-        if (value == null || value.trim().isEmpty()) {
-            throw new IOException("Required property not found: " + key);
+            final String name = (String) map.get("name");
+            final String id = (String) map.get("id");
+            final String version = (String) map.get("version");
+            final String description = (String) map.get("description");
+            final String mainClassName = (String) map.get("main");
+
+            final Set<IPluginDependency> depsSet = new HashSet<>();
+            final Object depsObj = map.get("dependencies");
+            if (depsObj instanceof List) {
+                for (final Map<String, Object> deo : (List<Map<String, Object>>) depsObj) {
+                    final PluginDependency dep = new PluginDependency((String) deo.get("id"));
+                    dep.setVersionRange(this.rangeParser.parse((String) deo.getOrDefault("version", "*")));
+                    dep.setRequired((boolean) deo.getOrDefault("required", true));
+                    dep.setChild((boolean) deo.getOrDefault("child", false));
+                    depsSet.add(dep);
+                }
+            }
+            final IPluginDependency[] dependencies = depsSet.toArray(IPluginDependency.EMPTY_ARR);
+
+            return new PluginMetadata(
+                    name,
+                    id,
+                    version,
+                    description,
+                    mainClassName,
+                    dependencies);
+        } catch (final Throwable e) {
+            throw new IllegalStateException("The metadata file is invalid.");
         }
-        return value.trim();
     }
 }

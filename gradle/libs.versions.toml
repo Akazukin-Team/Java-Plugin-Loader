@@ -5,6 +5,7 @@ akz-event = "3.0.0-SNAPSHOT"
 akz-semver = "1.0.0-SNAPSHOT"
 lombok = "1.18.42"
 jetbrains-annotation = "26.1.0"
+yaml = "2.6"
 
 # Logging
 slf4j = "2.1.0-alpha1"
@@ -28,6 +29,7 @@ akz-event = { module = "org.akazukin:event", version.ref = "akz-event" }
 akz-semver = { module = "org.akazukin:semver", version.ref = "akz-semver" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 jetbrains-annotations = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotation" }
+yaml = { module = "org.yaml:snakeyaml", version.ref = "yaml" }
 
 # Logging
 slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
