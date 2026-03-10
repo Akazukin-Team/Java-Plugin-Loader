@@ -100,22 +100,22 @@ public class PluginManager implements IPluginManager {
                 {
                     final Set<CompletableFuture<Void>> futures = new HashSet<>();
                     for (final IDependencyNode dep : sRes.getNodes()) {
-                        futures.add(CompletableFuture.runAsync(() -> {
-                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                            if (depCtx == null) {
-                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
+                        //futures.add(CompletableFuture.runAsync(() -> {
+                        final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                        if (depCtx == null) {
+                            throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
+                        }
+
+                        synchronized (depCtx) {
+                            if (!depCtx.getState().isLoaded()) {
+                                return;
                             }
 
-                            synchronized (depCtx) {
-                                if (!depCtx.getState().isLoaded()) {
-                                    return;
-                                }
-
-                                this.unloadPluginInternal(dep);
-                            }
-                        }));
+                            this.unloadPluginInternal(dep);
+                        }
+                        //}));
                     }
-                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    //CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
             }
 
@@ -324,29 +324,29 @@ public class PluginManager implements IPluginManager {
                     final IDependencyNode[] deps = sRes.getNodes();
 
                     for (final IDependencyNode dep : deps) {
-                        futures.add(CompletableFuture.runAsync(() -> {
-                            try {
-                                final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                                if (depCtx == null) {
-                                    throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
-                                }
-
-                                synchronized (depCtx) {
-                                    if (depCtx.getState().isLoaded()) {
-                                        return;
-                                    }
-
-                                    this.loadPluginInternal(dep);
-                                }
-                            } catch (final PluginLifecycleException e) {
-                                throw new RuntimeException(e);
+                        //futures.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                            if (depCtx == null) {
+                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
-                        }));
+
+                            synchronized (depCtx) {
+                                if (depCtx.getState().isLoaded()) {
+                                    return;
+                                }
+
+                                this.loadPluginInternal(dep);
+                            }
+                        } catch (final PluginLifecycleException e) {
+                            throw new RuntimeException(e);
+                        }
+                        //}));
                     }
 
                     // TODO 失敗時の巻き戻し処理を描く
 
-                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    //CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
             }
 
@@ -450,22 +450,22 @@ public class PluginManager implements IPluginManager {
                 {
                     final Set<CompletableFuture<Void>> futures = new HashSet<>();
                     for (final IDependencyNode dep : sRes.getNodes()) {
-                        futures.add(CompletableFuture.runAsync(() -> {
-                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                            if (depCtx == null) {
-                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
+                        //futures.add(CompletableFuture.runAsync(() -> {
+                        final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                        if (depCtx == null) {
+                            throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
+                        }
+
+                        synchronized (depCtx) {
+                            if (!depCtx.getState().isEnabled()) {
+                                return;
                             }
 
-                            synchronized (depCtx) {
-                                if (!depCtx.getState().isEnabled()) {
-                                    return;
-                                }
-
-                                this.disablePluginInternal(dep);
-                            }
-                        }));
+                            this.disablePluginInternal(dep);
+                        }
+                        //}));
                     }
-                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    //CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
             }
 
@@ -527,29 +527,29 @@ public class PluginManager implements IPluginManager {
 
                     final IDependencyNode[] deps = sRes.getNodes();
                     for (final IDependencyNode dep : deps) {
-                        futures.add(CompletableFuture.runAsync(() -> {
-                            try {
-                                final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                                if (depCtx == null) {
-                                    throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
-                                }
-
-                                synchronized (depCtx) {
-                                    if (depCtx.getState().isEnabled()) {
-                                        return;
-                                    }
-
-                                    this.loadPluginInternal(dep);
-                                }
-                            } catch (final PluginLifecycleException e) {
-                                throw new RuntimeException(e);
+                        //futures.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                            if (depCtx == null) {
+                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
-                        }));
+
+                            synchronized (depCtx) {
+                                if (depCtx.getState().isEnabled()) {
+                                    return;
+                                }
+
+                                this.loadPluginInternal(dep);
+                            }
+                        } catch (final PluginLifecycleException e) {
+                            throw new RuntimeException(e);
+                        }
+                        //}));
                     }
 
                     // TODO 失敗時の巻き戻し処理を描く
 
-                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    //CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
             }
 
