@@ -83,7 +83,7 @@ public class PluginManager implements IPluginManager {
         final IPluginMetadata meta = ctx.getMetadata();
         synchronized (ctx) {
             if (!ctx.getState().isLoaded()) {
-                throw new IllegalStateException("Plugin already unloaded: " + meta.getId());
+                throw new IllegalStateException("Plugin already unloaded: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
 
             if (ctx.getState().isEnabled()) {
@@ -100,22 +100,22 @@ public class PluginManager implements IPluginManager {
                 {
                     final Set<CompletableFuture<Void>> futures = new HashSet<>();
                     for (final IDependencyNode dep : sRes.getNodes()) {
-                        //futures.add(CompletableFuture.runAsync(() -> {
-                        final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                        if (depCtx == null) {
-                            throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
-                        }
-
-                        synchronized (depCtx) {
-                            if (!depCtx.getState().isLoaded()) {
-                                return;
+                        futures.add(CompletableFuture.runAsync(() -> {
+                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                            if (depCtx == null) {
+                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
 
-                            this.unloadPluginInternal(dep);
-                        }
-                        //}));
+                            synchronized (depCtx) {
+                                if (!depCtx.getState().isLoaded()) {
+                                    return;
+                                }
+
+                                this.unloadPluginInternal(dep);
+                            }
+                        }));
                     }
-                    //CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
             }
 
@@ -291,7 +291,7 @@ public class PluginManager implements IPluginManager {
             try {
                 final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
                 if (ctx == null || !ctx.getState().isLoaded()) {
-                    return;
+                    continue;
                 }
 
                 this.unloadPlugin(ctx.getMetadata().getId());
@@ -310,7 +310,7 @@ public class PluginManager implements IPluginManager {
         final IPluginMetadata meta = ctx.getMetadata();
         synchronized (ctx) {
             if (ctx.getState().isLoaded()) {
-                throw new IllegalStateException("Plugin already loaded: " + meta.getId());
+                throw new IllegalStateException("Plugin already loaded: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
 
             {
@@ -324,29 +324,29 @@ public class PluginManager implements IPluginManager {
                     final IDependencyNode[] deps = sRes.getNodes();
 
                     for (final IDependencyNode dep : deps) {
-                        //futures.add(CompletableFuture.runAsync(() -> {
-                        try {
-                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                            if (depCtx == null) {
-                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
-                            }
-
-                            synchronized (depCtx) {
-                                if (depCtx.getState().isLoaded()) {
-                                    return;
+                        futures.add(CompletableFuture.runAsync(() -> {
+                            try {
+                                final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                                if (depCtx == null) {
+                                    throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                                 }
 
-                                this.loadPluginInternal(dep);
+                                synchronized (depCtx) {
+                                    if (depCtx.getState().isLoaded()) {
+                                        return;
+                                    }
+
+                                    this.loadPluginInternal(dep);
+                                }
+                            } catch (final PluginLifecycleException e) {
+                                throw new RuntimeException(e);
                             }
-                        } catch (final PluginLifecycleException e) {
-                            throw new RuntimeException(e);
-                        }
-                        //}));
+                        }));
                     }
 
                     // TODO 失敗時の巻き戻し処理を描く
 
-                    //CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
             }
 
@@ -435,7 +435,7 @@ public class PluginManager implements IPluginManager {
         final IPluginMetadata meta = ctx.getMetadata();
         synchronized (ctx) {
             if (!ctx.getState().isEnabled()) {
-                throw new IllegalStateException("Plugin already disabled: " + meta.getId());
+                throw new IllegalStateException("Plugin already disabled: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
 
             log.info("Disabling plugin: " + meta.getId());
@@ -450,22 +450,22 @@ public class PluginManager implements IPluginManager {
                 {
                     final Set<CompletableFuture<Void>> futures = new HashSet<>();
                     for (final IDependencyNode dep : sRes.getNodes()) {
-                        //futures.add(CompletableFuture.runAsync(() -> {
-                        final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                        if (depCtx == null) {
-                            throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
-                        }
-
-                        synchronized (depCtx) {
-                            if (!depCtx.getState().isEnabled()) {
-                                return;
+                        futures.add(CompletableFuture.runAsync(() -> {
+                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                            if (depCtx == null) {
+                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
 
-                            this.disablePluginInternal(dep);
-                        }
-                        //}));
+                            synchronized (depCtx) {
+                                if (!depCtx.getState().isEnabled()) {
+                                    return;
+                                }
+
+                                this.disablePluginInternal(dep);
+                            }
+                        }));
                     }
-                    //CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
             }
 
@@ -511,7 +511,7 @@ public class PluginManager implements IPluginManager {
 
         synchronized (ctx) {
             if (ctx.getState().isEnabled()) {
-                throw new IllegalStateException("Plugin already enabled: " + meta.getId());
+                throw new IllegalStateException("Plugin already enabled: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
             if (!ctx.getState().isLoaded()) {
                 this.loadPluginInternal(node);
@@ -527,29 +527,31 @@ public class PluginManager implements IPluginManager {
 
                     final IDependencyNode[] deps = sRes.getNodes();
                     for (final IDependencyNode dep : deps) {
-                        //futures.add(CompletableFuture.runAsync(() -> {
-                        try {
-                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                            if (depCtx == null) {
-                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
-                            }
-
-                            synchronized (depCtx) {
-                                if (depCtx.getState().isEnabled()) {
-                                    return;
+                        futures.add(CompletableFuture.runAsync(() -> {
+                            try {
+                                final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                                if (depCtx == null) {
+                                    throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                                 }
 
-                                this.loadPluginInternal(dep);
+                                synchronized (depCtx) {
+                                    if (depCtx.getState().isEnabled()) {
+                                        return;
+                                    }
+
+                                    if (!depCtx.getState().isLoaded()) {
+                                        this.loadPluginInternal(dep);
+                                    }
+                                }
+                            } catch (final PluginLifecycleException e) {
+                                throw new RuntimeException(e);
                             }
-                        } catch (final PluginLifecycleException e) {
-                            throw new RuntimeException(e);
-                        }
-                        //}));
+                        }));
                     }
 
                     // TODO 失敗時の巻き戻し処理を描く
 
-                    //CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
                 }
             }
 
