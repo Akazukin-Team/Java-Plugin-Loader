@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.concurrent.locks.ReentrantLock;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -23,6 +24,7 @@ public final class PluginContext implements IPluginContext {
 
     final IPluginMetadata metadata;
     final URL url;
+    final Path pluginDir;
     @Nullable
     PluginClassLoader classLoader;
     @Nullable
@@ -37,8 +39,9 @@ public final class PluginContext implements IPluginContext {
     IPluginContext[] dependencies;
     ReentrantLock lock = new ReentrantLock();
 
-    PluginContext(final IPluginMetadata metadata, final URL url) {
+    PluginContext(final IPluginMetadata metadata, final URL url, final Path pluginDir) {
         this.metadata = metadata;
         this.url = url;
+        this.pluginDir = pluginDir;
     }
 }
