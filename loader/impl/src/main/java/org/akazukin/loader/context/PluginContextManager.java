@@ -9,6 +9,7 @@ import org.akazukin.loader.api.context.IPluginMetadata;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -52,7 +53,7 @@ public class PluginContextManager {
             throw new IllegalArgumentException("Plugin already exists: " + metadata.getId());
         }
 
-        final PluginContext context = new PluginContext(metadata, url);
+        final PluginContext context = new PluginContext(metadata, url, Paths.get("plugins/" + metadata.getId()));
         this.ctxs.add(context);
         return context;
     }
