@@ -279,8 +279,8 @@ public class PluginManager implements IPluginManager {
                 }
 
                 this.loadPlugin(pluginId);
-            } catch (final PluginLifecycleException e) {
-                log.error("Failed to load plugin: " + pluginId, e);
+            } catch (final Throwable t) {
+                log.error("Failed to load plugin: " + pluginId, t);
             }
         }
     }
@@ -295,8 +295,8 @@ public class PluginManager implements IPluginManager {
                 }
 
                 this.unloadPlugin(ctx.getMetadata().getId());
-            } catch (final PluginLifecycleException e) {
-                log.error("Failed to load plugin: " + pluginId, e);
+            } catch (final Throwable t) {
+                log.error("Failed to load plugin: " + pluginId, t);
             }
         }
     }
@@ -406,8 +406,8 @@ public class PluginManager implements IPluginManager {
                     final PostPluginLoadEvent event = new PostPluginLoadEvent(ctx);
                     this.eventMgr.callEvent(PostPluginLoadEvent.class, event);
                 }
-            } catch (final Exception e) {
-                log.error("Failed to load plugin: " + meta.getId(), e);
+            } catch (final Throwable t) {
+                log.error("Failed to load plugin: " + meta.getId(), t);
 
                 ctx.setDynamicState(PluginDynamicState.NONE);
 
@@ -421,7 +421,7 @@ public class PluginManager implements IPluginManager {
 
                 throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to load plugin: " + meta.getId(),
                         PluginState.NONE, PluginState.LOADED,
-                        e);
+                        t);
             }
         }
     }
@@ -595,11 +595,11 @@ public class PluginManager implements IPluginManager {
                     final PostPluginEnableEvent event = new PostPluginEnableEvent(ctx);
                     this.eventMgr.callEvent(PostPluginEnableEvent.class, event);
                 }
-            } catch (final Exception e) {
-                log.error("Failed to enable plugin: " + meta.getId(), e);
+            } catch (final Throwable t) {
+                log.error("Failed to enable plugin: " + meta.getId(), t);
                 throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to enable plugin: " + meta.getId(),
                         PluginState.LOADED, PluginState.ENABLED,
-                        e);
+                        t);
             } finally {
                 ctx.setDynamicState(PluginDynamicState.NONE);
             }
