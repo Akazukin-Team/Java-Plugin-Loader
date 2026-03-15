@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -56,15 +57,15 @@ import java.util.concurrent.CompletableFuture;
 public class PluginManager implements IPluginManager {
     ILoader loader;
     EventManager<IPluginLifecycleEvent> eventMgr;
-    PluginResolver pluginResolver;
+    PluginResolver plRes;
     PluginContextManager ctxMgr;
     DependencyMetadataResolver depResolver;
 
     public PluginManager(final ILoader loader, final EventManager<IPluginLifecycleEvent> eventMgr,
-                         final PluginResolver pluginResolver, final PluginContextManager ctxMgr) {
+                         final PluginResolver plRes, final PluginContextManager ctxMgr) {
         this.loader = loader;
         this.eventMgr = eventMgr;
-        this.pluginResolver = pluginResolver;
+        this.plRes = plRes;
         this.ctxMgr = ctxMgr;
         this.depResolver = new DependencyMetadataResolver(this.ctxMgr);
     }
@@ -154,12 +155,11 @@ public class PluginManager implements IPluginManager {
 
     @Override
     public synchronized void loadPlugin(@NotNull final String pluginId) throws PluginLifecycleException {
-        final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
-        if (ctx == null) {
-            throw new IllegalArgumentException("Plugin not found: " + pluginId);
+        final INode node = this.depResolver.getLowerNode(pluginId);
+        if (!node.getResult().isSuccess()) {
+            throw new PluginDependencyLoadException(node);
         }
 
-        final INode node = this.depResolver.getLowerNode(pluginId);
         this.loadPluginInternal(node);
     }
 
@@ -202,7 +202,7 @@ public class PluginManager implements IPluginManager {
 
             final PluginContext ctx = this.ctxMgr.initPluginContext(meta, url);
             synchronized (ctx) {
-                log.info("Loading plugin: " + meta.getName());
+                log.info("Registering plugin: " + meta.getName());
 
                 {
                     final PrePluginRegisterEvent event = new PrePluginRegisterEvent(ctx);
@@ -212,7 +212,7 @@ public class PluginManager implements IPluginManager {
                 ctx.setState(PluginState.NONE);
                 ctx.setDynamicState(PluginDynamicState.NONE);
 
-                log.info("Plugin loaded successfully: " + meta.getId());
+                log.info("Plugin registered successfully: " + meta.getId());
 
                 {
                     final PostPluginRegisterEvent event = new PostPluginRegisterEvent(ctx);
@@ -313,40 +313,52 @@ public class PluginManager implements IPluginManager {
                 throw new IllegalStateException("Plugin already loaded: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
 
+            final Collection<ClassLoader> depsLoaders = new HashSet<>();
             {
                 final IAnalyzeResult res = node.getResult();
-                if (res.isSuccess() && res instanceof final ISuccessResult sRes) {
-                    final Set<CompletableFuture<Void>> futures = new HashSet<>();
+                if (!res.isSuccess() || !(res instanceof final ISuccessResult sRes)) {
+                    throw new IllegalArgumentException("Invalid node: " + node);
+                }
 
-                    // TODO CompletableFutureの処理の最初のところでlockを取って
-                    //  巻き戻し処理まで保持する
 
-                    final IDependencyNode[] deps = sRes.getNodes();
+                final Set<CompletableFuture<Void>> futures = new HashSet<>();
 
-                    for (final IDependencyNode dep : deps) {
-                        futures.add(CompletableFuture.runAsync(() -> {
-                            try {
-                                final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
-                                if (depCtx == null) {
-                                    throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
-                                }
+                // TODO CompletableFutureの処理の最初のところでlockを取って
+                //  巻き戻し処理まで保持する
 
-                                synchronized (depCtx) {
-                                    if (depCtx.getState().isLoaded()) {
-                                        return;
-                                    }
+                final IDependencyNode[] deps = sRes.getNodes();
 
+                for (final IDependencyNode dep : deps) {
+                    futures.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            final PluginContext depCtx = this.ctxMgr.getPluginContext(dep.getPluginId());
+                            if (depCtx == null) {
+                                throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
+                            }
+
+                            synchronized (depCtx) {
+                                if (!depCtx.getState().isLoaded()) {
                                     this.loadPluginInternal(dep);
                                 }
-                            } catch (final PluginLifecycleException e) {
-                                throw new RuntimeException(e);
+
+                                synchronized (depsLoaders) {
+                                    depsLoaders.add(depCtx.getClassLoader());
+                                }
                             }
-                        }));
-                    }
+                        } catch (final PluginLifecycleException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }));
+                }
 
-                    // TODO 失敗時の巻き戻し処理を描く
+                // TODO 失敗時の巻き戻し処理を描く
 
-                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                final CompletableFuture<Void> future = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+                future.join();
+
+                if (future.isCompletedExceptionally()) {
+                    throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to load dependent plugin: " + meta.getId(),
+                            PluginState.NONE, PluginState.LOADED);
                 }
             }
 
@@ -364,6 +376,11 @@ public class PluginManager implements IPluginManager {
 
                 final PluginClassLoader classLoader = new PluginClassLoader(meta, this.ctxMgr.getParentLoader());
                 classLoader.addURL(ctx.getUrl());
+
+                for (final ClassLoader depLoader : depsLoaders) {
+                    log.debug("Adding dependency loader: " + depLoader);
+                    classLoader.addParentLoader(depLoader);
+                }
 
                 final Class<?> mainClz = classLoader.loadClass(mainClassName);
 
@@ -550,8 +567,13 @@ public class PluginManager implements IPluginManager {
                     }
 
                     // TODO 失敗時の巻き戻し処理を描く
+                    final CompletableFuture<Void> future = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+                    future.join();
 
-                    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+                    if (future.isCompletedExceptionally()) {
+                        throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to load dependent plugin: " + meta.getId(),
+                                PluginState.NONE, PluginState.LOADED);
+                    }
                 }
             }
 
@@ -564,32 +586,10 @@ public class PluginManager implements IPluginManager {
                     this.eventMgr.callEvent(PrePluginEnableEvent.class, event);
                 }
 
-                {
-                    final IAnalyzeResult res = node.getResult();
-                    if (!res.isSuccess()) {
-                        throw new PluginDependencyLoadException(node);
-                    }
-
-                    final ISuccessResult res2 = (ISuccessResult) res;
-                    for (final IDependencyNode depNode : res2.getNodes()) {
-                        if (depNode.getResult().isSuccess()) {
-                            final IPluginContext dep = this.pluginResolver.findById(depNode.getPluginId());
-                            if (dep != null) {
-                                ctx.getClassLoader().addParentLoader(dep.getClassLoader());
-                                continue;
-                            }
-                        }
-
-                        if (depNode.isRequired()) {
-                            throw new PluginDependencyLoadException(depNode);
-                        }
-                    }
-                }
-
                 ctx.getPlugin().onEnable();
 
                 ctx.setState(PluginState.ENABLED);
-                log.info("Plugin loaded successfully: " + meta.getId());
+                log.info("Plugin enabled successfully: " + meta.getId());
 
                 {
                     final PostPluginEnableEvent event = new PostPluginEnableEvent(ctx);
