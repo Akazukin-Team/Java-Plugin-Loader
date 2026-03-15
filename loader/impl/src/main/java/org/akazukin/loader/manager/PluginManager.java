@@ -374,13 +374,9 @@ public class PluginManager implements IPluginManager {
 
                 final String mainClassName = meta.getMainClass();
 
-                final PluginClassLoader classLoader = new PluginClassLoader(meta, this.ctxMgr.getParentLoader());
+                final PluginClassLoader classLoader = new PluginClassLoader(meta,
+                        this.ctxMgr.getParentLoader(), depsLoaders.toArray(new PluginClassLoader[0]));
                 classLoader.addURL(ctx.getUrl());
-
-                for (final ClassLoader depLoader : depsLoaders) {
-                    log.debug("Adding dependency loader: " + depLoader);
-                    classLoader.addParentLoader(depLoader);
-                }
 
                 final Class<?> mainClz = classLoader.loadClass(mainClassName);
 
