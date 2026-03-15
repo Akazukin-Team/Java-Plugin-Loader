@@ -374,9 +374,8 @@ public class PluginManager implements IPluginManager {
 
                 final String mainClassName = meta.getMainClass();
 
-                final PluginClassLoader classLoader = new PluginClassLoader(meta,
+                final PluginClassLoader classLoader = new PluginClassLoader(meta.getId(), ctx.getUrl(),
                         this.ctxMgr.getParentLoader(), depsLoaders.toArray(new PluginClassLoader[0]));
-                classLoader.addURL(ctx.getUrl());
 
                 final Class<?> mainClz = classLoader.loadClass(mainClassName);
 

@@ -3,7 +3,6 @@ package org.akazukin.loader.context;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.akazukin.loader.api.context.IPluginMetadata;
 
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -16,31 +15,34 @@ import java.util.Arrays;
 @Slf4j
 public class PluginClassLoader extends URLClassLoader {
     private static final URL[] EMPTY_URLS = new URL[0];
-    IPluginMetadata metadata;
+    String pluginId;
     PluginClassLoader[] parents;
 
-    public PluginClassLoader(final IPluginMetadata metadata, final ClassLoader parent, final PluginClassLoader... parents) {
+    public PluginClassLoader(final String pluginId, final URL pluginUrl,
+                             final ClassLoader parent, final PluginClassLoader... parents) {
         super(EMPTY_URLS, parent);
-        this.metadata = metadata;
+        this.addURL(pluginUrl);
+
+        this.pluginId = pluginId;
         this.parents = parents;
     }
 
     @Override
     protected synchronized Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
-        log.debug("Loading class: {}, Classloaders: {}", name, (this.parents.length + 1) + ", Name: " + this.metadata.getId());
+        log.debug("Loading class: {}, Classloaders: {}", name, (this.parents.length + 1) + ", Name: " + this.pluginId);
         for (final ClassLoader parent : this.parents) {
             if (!(parent instanceof final PluginClassLoader plParent)) {
                 continue;
             }
 
-            log.debug("Checking parent: {}, {}", plParent.metadata.getId(), plParent);
+            log.debug("Checking parent: {}, {}", plParent.pluginId, plParent);
             final Class<?> clz = plParent.findLoadedClass(name);
             if (clz != null) {
                 return clz;
             }
         }
         {
-            log.debug("Checking this, {}, {}", this.metadata.getId(), this);
+            log.debug("Checking this, {}, {}", this.pluginId, this);
             final Class<?> clz = super.findLoadedClass(name);
             if (clz != null) {
                 return clz;
@@ -55,7 +57,7 @@ public class PluginClassLoader extends URLClassLoader {
             }
         }
         try {
-            log.debug("Loading this, {}, {}", this.metadata.getId(), this);
+            log.debug("Loading this, {}, {}", this.pluginId, this);
             return super.loadClass(name, resolve);
         } catch (final ClassNotFoundException e) {
             throw new ClassNotFoundException(e.getMessage());
@@ -63,14 +65,9 @@ public class PluginClassLoader extends URLClassLoader {
     }
 
     @Override
-    public void addURL(final URL url) {
-        super.addURL(url);
-    }
-
-    @Override
     public String toString() {
         return "PluginClassLoader{" +
-                "pluginId='" + this.metadata.getId() + '\'' +
+                "pluginId='" + this.pluginId + '\'' +
                 ", urls=" + Arrays.toString(this.getURLs()) +
                 '}' + super.toString();
     }
