@@ -34,18 +34,18 @@ public final class PluginMetadataLoader {
 
             final String id = (String) map.get("id");
             final String name = (String) map.get("name");
-            final String version = (String) map.get("version");
+            final String version = (String) map.getOrDefault("version", "*");
             final String description = (String) map.get("description");
             final String mainClassName = (String) map.get("main-class");
 
             final Set<IPluginDependency> depsSet = new HashSet<>();
-            final Object depsObj = map.get("dependencies");
-            if (depsObj instanceof List) {
-                for (final Map<String, Object> deo : (List<Map<String, Object>>) depsObj) {
-                    final PluginDependency dep = new PluginDependency((String) deo.get("id"));
-                    dep.setVersionRange(this.rangeParser.parse((String) deo.getOrDefault("version", "*")));
-                    dep.setRequired((boolean) deo.getOrDefault("required", true));
-                    dep.setChild((boolean) deo.getOrDefault("child", false));
+            final Object depsObjs = map.get("dependencies");
+            if (depsObjs instanceof List) {
+                for (final Map<String, Object> depObj : (List<Map<String, Object>>) depsObjs) {
+                    final PluginDependency dep = new PluginDependency((String) depObj.get("id"));
+                    dep.setVersionRange(this.rangeParser.parse((String) depObj.getOrDefault("version", "*")));
+                    dep.setRequired((boolean) depObj.getOrDefault("required", true));
+                    dep.setChild((boolean) depObj.getOrDefault("child", false));
                     depsSet.add(dep);
                 }
             }
