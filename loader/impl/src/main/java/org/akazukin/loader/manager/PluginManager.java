@@ -57,15 +57,13 @@ import java.util.concurrent.CompletableFuture;
 public class PluginManager implements IPluginManager {
     ILoader loader;
     EventManager<IPluginLifecycleEvent> eventMgr;
-    PluginResolver plRes;
     PluginContextManager ctxMgr;
     DependencyMetadataResolver depResolver;
 
     public PluginManager(final ILoader loader, final EventManager<IPluginLifecycleEvent> eventMgr,
-                         final PluginResolver plRes, final PluginContextManager ctxMgr) {
+                         final PluginContextManager ctxMgr) {
         this.loader = loader;
         this.eventMgr = eventMgr;
-        this.plRes = plRes;
         this.ctxMgr = ctxMgr;
         this.depResolver = new DependencyMetadataResolver(this.ctxMgr);
     }
