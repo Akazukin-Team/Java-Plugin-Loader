@@ -8,9 +8,6 @@ import org.akazukin.loader.api.context.IPluginMetadata;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Isolated ClassLoader for plugins enabling class isolation and package access control.
@@ -20,23 +17,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PluginClassLoader extends URLClassLoader {
     private static final URL[] EMPTY_URLS = new URL[0];
     IPluginMetadata metadata;
-    Map<String, Class<?>> classCache = new ConcurrentHashMap<>();
-    Set<String> loadedClasses = ConcurrentHashMap.newKeySet();
-    Set<ClassLoader> parentLoaders = ConcurrentHashMap.newKeySet();
+    PluginClassLoader[] parents;
 
-    public PluginClassLoader(final IPluginMetadata metadata, final ClassLoader parent) {
+    public PluginClassLoader(final IPluginMetadata metadata, final ClassLoader parent, final PluginClassLoader... parents) {
         super(EMPTY_URLS, parent);
         this.metadata = metadata;
-    }
-
-    public synchronized void addParentLoader(final ClassLoader loader) {
-        this.parentLoaders.add(loader);
+        this.parents = parents;
     }
 
     @Override
     protected synchronized Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
-        log.debug("Loading class: {}, Classloaders: {}", name, (this.parentLoaders.size() + 1) + ", Name: " + this.metadata.getId());
-        for (final ClassLoader parent : this.parentLoaders) {
+        log.debug("Loading class: {}, Classloaders: {}", name, (this.parents.length + 1) + ", Name: " + this.metadata.getId());
+        for (final ClassLoader parent : this.parents) {
             if (!(parent instanceof final PluginClassLoader plParent)) {
                 continue;
             }
@@ -55,7 +47,7 @@ public class PluginClassLoader extends URLClassLoader {
             }
         }
 
-        for (final ClassLoader parent : this.parentLoaders) {
+        for (final ClassLoader parent : this.parents) {
             try {
                 log.debug("Loading parent: {}", parent);
                 return parent.loadClass(name);
