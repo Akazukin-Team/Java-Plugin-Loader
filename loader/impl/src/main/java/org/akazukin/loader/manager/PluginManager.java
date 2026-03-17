@@ -119,7 +119,7 @@ public class PluginManager implements IPluginManager {
                 }
             }
 
-            log.info("Unloading plugin: " + meta.getName());
+            log.info("Unloading plugin: " + meta.getId());
             ctx.setDynamicState(PluginDynamicState.UNLOADING);
 
             {
@@ -201,7 +201,7 @@ public class PluginManager implements IPluginManager {
 
             final PluginContext ctx = this.ctxMgr.initPluginContext(meta, url);
             synchronized (ctx) {
-                log.info("Registering plugin: " + meta.getName());
+                log.info("Registering plugin: " + meta.getId());
 
                 {
                     final PrePluginRegisterEvent event = new PrePluginRegisterEvent(ctx);
@@ -234,7 +234,7 @@ public class PluginManager implements IPluginManager {
                 this.unloadPlugin(pluginId);
             }
 
-            log.info("Unregister plugin: " + meta.getName());
+            log.info("Unregister plugin: " + meta.getId());
 
             {
                 final PrePluginUnregisterEvent event = new PrePluginUnregisterEvent(ctx);
@@ -362,7 +362,7 @@ public class PluginManager implements IPluginManager {
             }
 
             try {
-                log.info("Loading plugin: " + meta.getName());
+                log.info("Loading plugin: " + meta.getId());
 
                 ctx.setDynamicState(PluginDynamicState.LOADING);
 
@@ -572,7 +572,7 @@ public class PluginManager implements IPluginManager {
             }
 
             try {
-                log.info("Enabling plugin: " + meta.getName());
+                log.info("Enabling plugin: " + meta.getId());
                 ctx.setDynamicState(PluginDynamicState.ENABLING);
 
                 {
