@@ -45,6 +45,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * Manages plugin lifecycle and service orchestration with lifecycle listener
@@ -354,9 +355,9 @@ public class PluginManager implements IPluginManager {
                 // TODO 失敗時の巻き戻し処理を描く
 
                 final CompletableFuture<Void> future = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-                future.join();
-
-                if (future.isCompletedExceptionally()) {
+                try {
+                    future.join();
+                } catch (final CompletionException e) {
                     throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to load dependent plugin: " + meta.getId(),
                             PluginState.NONE, PluginState.LOADED);
                 }
@@ -563,9 +564,9 @@ public class PluginManager implements IPluginManager {
 
                     // TODO 失敗時の巻き戻し処理を描く
                     final CompletableFuture<Void> future = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-                    future.join();
-
-                    if (future.isCompletedExceptionally()) {
+                    try {
+                        future.join();
+                    } catch (final CompletionException e) {
                         throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to load dependent plugin: " + meta.getId(),
                                 PluginState.NONE, PluginState.LOADED);
                     }
