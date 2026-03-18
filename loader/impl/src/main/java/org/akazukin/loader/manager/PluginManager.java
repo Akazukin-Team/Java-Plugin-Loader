@@ -546,12 +546,8 @@ public class PluginManager implements IPluginManager {
                                 }
 
                                 synchronized (depCtx) {
-                                    if (depCtx.getState().isEnabled()) {
-                                        return;
-                                    }
-
-                                    if (!depCtx.getState().isLoaded()) {
-                                        this.loadPluginInternal(dep);
+                                    if (!depCtx.getState().isEnabled()) {
+                                        this.enablePluginInternal(dep);
                                     }
                                 }
                             } catch (final PluginLifecycleException e) {
