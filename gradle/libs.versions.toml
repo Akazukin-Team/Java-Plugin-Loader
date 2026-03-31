@@ -17,7 +17,7 @@ jmh-lib = "1.37"
 #Gradle Plugin
 gradle-versions = "0.52.0"
 jmh-pl = "0.7.3"
-graalvm = "0.11.5"
+graalvm = "1.0.0"
 runTask = "2.2.3"
 
 
