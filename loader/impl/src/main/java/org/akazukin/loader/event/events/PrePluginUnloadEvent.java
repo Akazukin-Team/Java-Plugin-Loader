@@ -20,4 +20,11 @@ public class PrePluginUnloadEvent implements IPrePluginUnloadEvent {
         this.pluginId = pluginContext.getMetadata().getId();
         this.pluginContext = pluginContext;
     }
+
+    @Override
+    public String toString() {
+        return "PrePluginUnloadEvent{"
+                + "pluginId='" + this.pluginId + '\''
+                + '}';
+    }
 }

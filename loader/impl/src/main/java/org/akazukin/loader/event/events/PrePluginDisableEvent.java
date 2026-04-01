@@ -20,4 +20,11 @@ public class PrePluginDisableEvent implements IPrePluginDisableEvent {
         this.pluginId = pluginContext.getMetadata().getId();
         this.pluginContext = pluginContext;
     }
+
+    @Override
+    public String toString() {
+        return "PrePluginDisableEvent{"
+                + "pluginId='" + this.pluginId + '\''
+                + '}';
+    }
 }

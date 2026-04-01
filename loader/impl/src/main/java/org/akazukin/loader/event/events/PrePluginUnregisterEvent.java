@@ -20,4 +20,11 @@ public class PrePluginUnregisterEvent implements IPrePluginUnregisterEvent {
         this.pluginId = pluginContext.getMetadata().getId();
         this.pluginContext = pluginContext;
     }
+
+    @Override
+    public String toString() {
+        return "PrePluginUnregisterEvent{"
+                + "pluginId='" + this.pluginId + '\''
+                + '}';
+    }
 }

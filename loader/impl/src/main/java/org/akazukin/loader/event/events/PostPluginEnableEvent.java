@@ -17,4 +17,11 @@ public class PostPluginEnableEvent implements IPostPluginEnableEvent {
         this.pluginId = pluginContext.getMetadata().getId();
         this.pluginContext = pluginContext;
     }
+
+    @Override
+    public String toString() {
+        return "PostPluginEnableEvent{"
+                + "pluginId='" + this.pluginId + '\''
+                + '}';
+    }
 }
