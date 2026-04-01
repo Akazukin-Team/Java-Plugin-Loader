@@ -17,4 +17,11 @@ public class PostPluginUnregisterEvent implements IPostPluginUnregisterEvent {
         this.pluginId = pluginContext.getMetadata().getId();
         this.pluginContext = pluginContext;
     }
+
+    @Override
+    public String toString() {
+        return "PostPluginUnregisterEvent{"
+                + "pluginId='" + this.pluginId + '\''
+                + '}';
+    }
 }

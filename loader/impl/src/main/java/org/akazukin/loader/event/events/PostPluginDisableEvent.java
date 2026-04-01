@@ -17,4 +17,11 @@ public class PostPluginDisableEvent implements IPostPluginDisableEvent {
         this.pluginId = pluginContext.getMetadata().getId();
         this.pluginContext = pluginContext;
     }
+
+    @Override
+    public String toString() {
+        return "PostPluginDisableEvent{"
+                + "pluginId='" + this.pluginId + '\''
+                + '}';
+    }
 }

@@ -20,4 +20,11 @@ public class PrePluginLoadEvent implements IPrePluginLoadEvent {
         this.pluginId = pluginContext.getMetadata().getId();
         this.pluginContext = pluginContext;
     }
+
+    @Override
+    public String toString() {
+        return "PrePluginLoadEvent{"
+                + "pluginId='" + this.pluginId + '\''
+                + '}';
+    }
 }
