@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Getter
-public class PostPluginUnloadEvent implements IPostPluginUnloadEvent {
+public final class PostPluginUnloadEvent implements IPostPluginUnloadEvent {
     String pluginId;
     IPluginContext pluginContext;
 
