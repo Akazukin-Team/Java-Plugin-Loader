@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Getter
-public class PostPluginRegisterEvent implements IPostPluginRegisterEvent {
+public final class PostPluginRegisterEvent implements IPostPluginRegisterEvent {
     String pluginId;
     IPluginContext pluginContext;
 

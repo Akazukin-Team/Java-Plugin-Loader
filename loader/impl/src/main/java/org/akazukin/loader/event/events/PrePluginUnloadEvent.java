@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
 @Setter
-public class PrePluginUnloadEvent implements IPrePluginUnloadEvent {
+public final class PrePluginUnloadEvent implements IPrePluginUnloadEvent {
     final String pluginId;
     final IPluginContext pluginContext;
     boolean cancelled;
