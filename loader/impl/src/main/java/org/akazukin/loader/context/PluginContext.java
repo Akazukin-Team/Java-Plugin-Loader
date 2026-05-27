@@ -9,12 +9,12 @@ import org.akazukin.loader.api.context.IPluginContext;
 import org.akazukin.loader.api.context.IPluginMetadata;
 import org.akazukin.loader.api.context.PluginDynamicState;
 import org.akazukin.loader.api.context.PluginState;
+import org.akazukin.util.concurrent.FixedReentrantReadWriteLock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.concurrent.locks.ReentrantLock;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
@@ -37,7 +37,7 @@ public final class PluginContext implements IPluginContext {
     PluginState stateSpec;
     @Nullable
     IPluginContext[] dependencies;
-    ReentrantLock lock = new ReentrantLock();
+    FixedReentrantReadWriteLock lock = new FixedReentrantReadWriteLock();
 
     PluginContext(final IPluginMetadata metadata, final URL url, final Path pluginDir) {
         this.metadata = metadata;
