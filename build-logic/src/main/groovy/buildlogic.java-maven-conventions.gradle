@@ -32,8 +32,6 @@ publishing {
                 password = project.hasProperty('repository.password') ? project['repository.password'] : System.getenv('REPOSITORY_PASSWORD')
             }
         }
-
-        mavenLocal()
     }
 
     publications {

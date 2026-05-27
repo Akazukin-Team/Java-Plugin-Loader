@@ -10,5 +10,4 @@ dependencies {
     implementation libs.gradle.versions
     implementation libs.jmh.pl
     implementation libs.graalvm
-    implementation libs.runTask
 }
