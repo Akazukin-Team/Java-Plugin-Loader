@@ -12,16 +12,12 @@ import java.net.URL;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PluginContextManager {
     Set<PluginContext> ctxs = new HashSet<>();
     @Getter
     ClassLoader parentLoader;
-    // TODO ReentrantReadWriteLockのロック昇格を修正したものを実装し使用する
-    @Getter
-    ReentrantReadWriteLock lock = null;
 
     public PluginContextManager(final ClassLoader parentLoader) {
         this.parentLoader = parentLoader;

@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.akazukin.event.EventManager;
 import org.akazukin.loader.api.ILoader;
 import org.akazukin.loader.api.context.IPlugin;
-import org.akazukin.loader.api.context.IPluginContext;
 import org.akazukin.loader.api.context.IPluginMetadata;
 import org.akazukin.loader.api.context.PluginDynamicState;
 import org.akazukin.loader.api.context.PluginState;
@@ -35,6 +34,7 @@ import org.akazukin.loader.event.events.PrePluginLoadEvent;
 import org.akazukin.loader.event.events.PrePluginRegisterEvent;
 import org.akazukin.loader.event.events.PrePluginUnloadEvent;
 import org.akazukin.loader.event.events.PrePluginUnregisterEvent;
+import org.akazukin.util.concurrent.FixedReentrantReadWriteLock;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -81,7 +81,7 @@ public class PluginManager implements IPluginManager {
         }
 
         final IPluginMetadata meta = ctx.getMetadata();
-        synchronized (ctx) {
+        try (final FixedReentrantReadWriteLock.ILock l = ctx.getLock().sharedLock()) {
             if (!ctx.getState().isLoaded()) {
                 throw new IllegalStateException("Plugin already unloaded: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
@@ -106,7 +106,7 @@ public class PluginManager implements IPluginManager {
                                 throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
 
-                            synchronized (depCtx) {
+                            try (final FixedReentrantReadWriteLock.ILock l2 = depCtx.getLock().sharedLock()) {
                                 if (!depCtx.getState().isLoaded()) {
                                     return;
                                 }
@@ -119,41 +119,43 @@ public class PluginManager implements IPluginManager {
                 }
             }
 
-            log.info("Unloading plugin: " + meta.getId());
-            ctx.setDynamicState(PluginDynamicState.UNLOADING);
+            try (final FixedReentrantReadWriteLock.ILock l2 = ctx.getLock().exclusiveLock()) {
+                log.info("Unloading plugin: " + meta.getId());
+                ctx.setDynamicState(PluginDynamicState.UNLOADING);
 
-            {
-                final PrePluginUnloadEvent event = new PrePluginUnloadEvent(ctx);
-                this.eventMgr.callEvent(PrePluginUnloadEvent.class, event);
-            }
+                {
+                    final PrePluginUnloadEvent event = new PrePluginUnloadEvent(ctx);
+                    this.eventMgr.callEvent(PrePluginUnloadEvent.class, event);
+                }
 
-            try {
-                ctx.getPlugin().onUnload();
-            } catch (final Throwable t2) {
-                log.error("Failed to call onUnload() of plugin: " + meta.getId(), t2);
-            }
-            ctx.setPlugin(null);
+                try {
+                    ctx.getPlugin().onUnload();
+                } catch (final Throwable t2) {
+                    log.error("Failed to call onUnload() of plugin: " + meta.getId(), t2);
+                }
+                ctx.setPlugin(null);
 
-            try {
-                ctx.getClassLoader().close();
-            } catch (final IOException e) {
-                throw new RuntimeException(e);
-            }
-            ctx.setClassLoader(null);
+                try {
+                    ctx.getClassLoader().close();
+                } catch (final IOException e) {
+                    throw new RuntimeException(e);
+                }
+                ctx.setClassLoader(null);
 
 
-            ctx.setDynamicState(PluginDynamicState.NONE);
-            ctx.setState(PluginState.NONE);
+                ctx.setDynamicState(PluginDynamicState.NONE);
+                ctx.setState(PluginState.NONE);
 
-            {
-                final PostPluginUnloadEvent event = new PostPluginUnloadEvent(ctx);
-                this.eventMgr.callEvent(PostPluginUnloadEvent.class, event);
+                {
+                    final PostPluginUnloadEvent event = new PostPluginUnloadEvent(ctx);
+                    this.eventMgr.callEvent(PostPluginUnloadEvent.class, event);
+                }
             }
         }
     }
 
     @Override
-    public synchronized void loadPlugin(@NotNull final String pluginId) throws PluginLifecycleException {
+    public void loadPlugin(@NotNull final String pluginId) throws PluginLifecycleException {
         final INode node = this.depResolver.getLowerNode(pluginId);
         if (!node.getResult().isSuccess()) {
             throw new PluginDependencyLoadException(node);
@@ -200,7 +202,7 @@ public class PluginManager implements IPluginManager {
             }
 
             final PluginContext ctx = this.ctxMgr.initPluginContext(meta, url);
-            synchronized (ctx) {
+            try (final FixedReentrantReadWriteLock.ILock l = ctx.getLock().exclusiveLock()) {
                 log.info("Registering plugin: " + meta.getId());
 
                 {
@@ -223,13 +225,13 @@ public class PluginManager implements IPluginManager {
 
     @Override
     public void unregisterPlugin(final @NotNull String pluginId) throws PluginLifecycleException {
-        final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
+        final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
         if (ctx == null) {
             throw new IllegalArgumentException("Plugin not found: " + pluginId);
         }
 
         final IPluginMetadata meta = ctx.getMetadata();
-        synchronized (ctx) {
+        try (final FixedReentrantReadWriteLock.ILock l = ctx.getLock().exclusiveLock()) {
             if (ctx.getState().isLoaded()) {
                 this.unloadPlugin(pluginId);
             }
@@ -256,7 +258,7 @@ public class PluginManager implements IPluginManager {
     public void enableAll() {
         for (final String pluginId : this.getPluginIds()) {
             try {
-                final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
+                final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
                 if (ctx == null || ctx.getState().isEnabled()) {
                     continue;
                 }
@@ -270,34 +272,51 @@ public class PluginManager implements IPluginManager {
 
     @Override
     public void loadAll() {
+        final Set<CompletableFuture<Void>> futures = new HashSet<>();
         for (final String pluginId : this.getPluginIds()) {
-            try {
-                final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
-                if (ctx == null || ctx.getState().isLoaded()) {
-                    continue;
+            futures.add(CompletableFuture.runAsync(() -> {
+                final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
+                if (ctx == null) {
+                    throw new IllegalStateException("Plugin not found: " + pluginId);
                 }
 
-                this.loadPlugin(pluginId);
-            } catch (final Throwable t) {
-                log.error("Failed to load plugin: " + pluginId, t);
-            }
+                try (final FixedReentrantReadWriteLock.ILock l = ctx.getLock().sharedLock()) {
+                    if (ctx.getState().isLoaded()) {
+                        return;
+                    }
+
+                    l.setLendable(true);
+                    this.loadPlugin(pluginId);
+                } catch (final Throwable t) {
+                    log.error("Failed to load plugin: " + pluginId, t);
+                }
+            }));
         }
+        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
     }
 
     @Override
-    public synchronized void unloadAll() {
+    public void unloadAll() {
+        final Set<CompletableFuture<Void>> futures = new HashSet<>();
         for (final String pluginId : this.getPluginIds()) {
-            try {
-                final IPluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
-                if (ctx == null || !ctx.getState().isLoaded()) {
-                    continue;
+            futures.add(CompletableFuture.runAsync(() -> {
+                final PluginContext ctx = this.ctxMgr.getPluginContext(pluginId);
+                if (ctx == null) {
+                    throw new IllegalStateException("Plugin not found: " + pluginId);
                 }
 
-                this.unloadPlugin(ctx.getMetadata().getId());
-            } catch (final Throwable t) {
-                log.error("Failed to load plugin: " + pluginId, t);
-            }
+                try (final FixedReentrantReadWriteLock.ILock l = ctx.getLock().sharedLock()) {
+                    if (!ctx.getState().isLoaded()) {
+                        return;
+                    }
+
+                    this.unloadPlugin(pluginId);
+                } catch (final Throwable t) {
+                    log.error("Failed to unload plugin: " + pluginId, t);
+                }
+            }));
         }
+        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
     }
 
     private void loadPluginInternal(@NotNull final INode node) throws PluginLifecycleException {
@@ -307,7 +326,7 @@ public class PluginManager implements IPluginManager {
         }
 
         final IPluginMetadata meta = ctx.getMetadata();
-        synchronized (ctx) {
+        try (final FixedReentrantReadWriteLock.ILock l = ctx.getLock().sharedLock()) {
             if (ctx.getState().isLoaded()) {
                 throw new IllegalStateException("Plugin already loaded: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
@@ -335,7 +354,7 @@ public class PluginManager implements IPluginManager {
                                 throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
 
-                            synchronized (depCtx) {
+                            try (final FixedReentrantReadWriteLock.ILock l2 = depCtx.getLock().sharedLock()) {
                                 if (!depCtx.getState().isLoaded()) {
                                     this.loadPluginInternal(dep);
                                 }
@@ -361,78 +380,80 @@ public class PluginManager implements IPluginManager {
                 }
             }
 
-            try {
-                log.info("Loading plugin: " + meta.getId());
+            try (final FixedReentrantReadWriteLock.ILock l2 = ctx.getLock().exclusiveLock()) {
+                try {
+                    log.info("Loading plugin: " + meta.getId());
 
-                ctx.setDynamicState(PluginDynamicState.LOADING);
+                    ctx.setDynamicState(PluginDynamicState.LOADING);
 
-                {
-                    final PrePluginLoadEvent event = new PrePluginLoadEvent(ctx);
-                    this.eventMgr.callEvent(PrePluginLoadEvent.class, event);
-                }
-
-                final String mainClassName = meta.getMainClass();
-
-                final PluginClassLoader classLoader = new PluginClassLoader(meta.getId(), ctx.getUrl(),
-                        this.ctxMgr.getParentLoader(), depsLoaders.toArray(new PluginClassLoader[0]));
-
-                final Class<?> mainClz = classLoader.loadClass(mainClassName);
-
-                if (!IPlugin.class.isAssignableFrom(mainClz)) {
-                    throw new IllegalArgumentException(
-                            "Main class must implement Plugin interface: " + mainClz.getName());
-                }
-
-                IPlugin plugin;
-                initInstance:
-                {
-                    try {
-                        final Constructor<?> constructor = mainClz.getDeclaredConstructor(ILoader.class);
-                        plugin = (IPlugin) constructor.newInstance(this.loader);
-                        break initInstance;
-                    } catch (final NoSuchMethodException ignored) {
-                    }
-                    try {
-                        final Constructor<?> constructor = mainClz.getDeclaredConstructor();
-                        plugin = (IPlugin) constructor.newInstance();
-                        break initInstance;
-                    } catch (final NoSuchMethodException ignored) {
+                    {
+                        final PrePluginLoadEvent event = new PrePluginLoadEvent(ctx);
+                        this.eventMgr.callEvent(PrePluginLoadEvent.class, event);
                     }
 
-                    throw new IllegalArgumentException("Main class must have a constructor with no args or ILoader: " + mainClz.getName());
-                }
+                    final String mainClassName = meta.getMainClass();
 
-                // Init plugin
-                plugin.onLoad();
+                    final PluginClassLoader classLoader = new PluginClassLoader(meta.getId(), ctx.getUrl(),
+                            this.ctxMgr.getParentLoader(), depsLoaders.toArray(new PluginClassLoader[0]));
 
-                ctx.setClassLoader(classLoader);
-                ctx.setPlugin(plugin);
+                    final Class<?> mainClz = classLoader.loadClass(mainClassName);
 
-                ctx.setState(PluginState.LOADED);
-                ctx.setDynamicState(PluginDynamicState.NONE);
-
-                log.info("Plugin loaded successfully: " + meta.getId());
-
-                {
-                    final PostPluginLoadEvent event = new PostPluginLoadEvent(ctx);
-                    this.eventMgr.callEvent(PostPluginLoadEvent.class, event);
-                }
-            } catch (final Throwable t) {
-                log.error("Failed to load plugin: " + meta.getId(), t);
-
-                ctx.setDynamicState(PluginDynamicState.NONE);
-
-                if (ctx.getState().isLoaded()) {
-                    try {
-                        this.unloadPlugin(node.getPluginId());
-                    } catch (final PluginLifecycleException ex) {
-                        log.error("Failed to unload plugin, but force unloaded: " + meta.getId(), ex);
+                    if (!IPlugin.class.isAssignableFrom(mainClz)) {
+                        throw new IllegalArgumentException(
+                                "Main class must implement Plugin interface: " + mainClz.getName());
                     }
-                }
 
-                throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to load plugin: " + meta.getId(),
-                        PluginState.NONE, PluginState.LOADED,
-                        t);
+                    IPlugin plugin;
+                    initInstance:
+                    {
+                        try {
+                            final Constructor<?> constructor = mainClz.getDeclaredConstructor(ILoader.class);
+                            plugin = (IPlugin) constructor.newInstance(this.loader);
+                            break initInstance;
+                        } catch (final NoSuchMethodException ignored) {
+                        }
+                        try {
+                            final Constructor<?> constructor = mainClz.getDeclaredConstructor();
+                            plugin = (IPlugin) constructor.newInstance();
+                            break initInstance;
+                        } catch (final NoSuchMethodException ignored) {
+                        }
+
+                        throw new IllegalArgumentException("Main class must have a constructor with no args or ILoader: " + mainClz.getName());
+                    }
+
+                    // Init plugin
+                    plugin.onLoad();
+
+                    ctx.setClassLoader(classLoader);
+                    ctx.setPlugin(plugin);
+
+                    ctx.setState(PluginState.LOADED);
+                    ctx.setDynamicState(PluginDynamicState.NONE);
+
+                    log.info("Plugin loaded successfully: " + meta.getId());
+
+                    {
+                        final PostPluginLoadEvent event = new PostPluginLoadEvent(ctx);
+                        this.eventMgr.callEvent(PostPluginLoadEvent.class, event);
+                    }
+                } catch (final Throwable t) {
+                    log.error("Failed to load plugin: " + meta.getId(), t);
+
+                    ctx.setDynamicState(PluginDynamicState.NONE);
+
+                    if (ctx.getState().isLoaded()) {
+                        try {
+                            this.unloadPlugin(node.getPluginId());
+                        } catch (final PluginLifecycleException ex) {
+                            log.error("Failed to unload plugin, but force unloaded: " + meta.getId(), ex);
+                        }
+                    }
+
+                    throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to load plugin: " + meta.getId(),
+                            PluginState.NONE, PluginState.LOADED,
+                            t);
+                }
             }
         }
     }
@@ -444,7 +465,7 @@ public class PluginManager implements IPluginManager {
         }
 
         final IPluginMetadata meta = ctx.getMetadata();
-        synchronized (ctx) {
+        try (final FixedReentrantReadWriteLock.ILock l = ctx.getLock().exclusiveLock()) {
             if (!ctx.getState().isEnabled()) {
                 throw new IllegalStateException("Plugin already disabled: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
@@ -467,7 +488,7 @@ public class PluginManager implements IPluginManager {
                                 throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                             }
 
-                            synchronized (depCtx) {
+                            try (final FixedReentrantReadWriteLock.ILock l2 = depCtx.getLock().sharedLock()) {
                                 if (!depCtx.getState().isEnabled()) {
                                     return;
                                 }
@@ -480,28 +501,29 @@ public class PluginManager implements IPluginManager {
                 }
             }
 
+            try (final FixedReentrantReadWriteLock.ILock l2 = ctx.getLock().exclusiveLock()) {
+                ctx.setDynamicState(PluginDynamicState.DISABLING);
 
-            ctx.setDynamicState(PluginDynamicState.DISABLING);
+                {
+                    final PrePluginDisableEvent event = new PrePluginDisableEvent(ctx);
+                    this.eventMgr.callEvent(PrePluginDisableEvent.class, event);
+                }
 
-            {
-                final PrePluginDisableEvent event = new PrePluginDisableEvent(ctx);
-                this.eventMgr.callEvent(PrePluginDisableEvent.class, event);
-            }
+                try {
+                    ctx.getPlugin().onDisable();
+                } catch (final Throwable t) {
+                    log.error("Failed to call onDisable() of plugin: " + meta.getId(), t);
+                }
 
-            try {
-                ctx.getPlugin().onDisable();
-            } catch (final Throwable t) {
-                log.error("Failed to call onDisable() of plugin: " + meta.getId(), t);
-            }
+                ctx.setState(PluginState.LOADED);
+                ctx.setDynamicState(PluginDynamicState.NONE);
 
-            ctx.setState(PluginState.LOADED);
-            ctx.setDynamicState(PluginDynamicState.NONE);
+                log.info("Plugin disabled successfully: " + meta.getId());
 
-            log.info("Plugin disabled successfully: " + meta.getId());
-
-            {
-                final PostPluginDisableEvent event = new PostPluginDisableEvent(ctx);
-                this.eventMgr.callEvent(PostPluginDisableEvent.class, event);
+                {
+                    final PostPluginDisableEvent event = new PostPluginDisableEvent(ctx);
+                    this.eventMgr.callEvent(PostPluginDisableEvent.class, event);
+                }
             }
         }
     }
@@ -520,7 +542,7 @@ public class PluginManager implements IPluginManager {
 
         final IPluginMetadata meta = ctx.getMetadata();
 
-        synchronized (ctx) {
+        try (final FixedReentrantReadWriteLock.ILock l = ctx.getLock().exclusiveLock()) {
             if (ctx.getState().isEnabled()) {
                 throw new IllegalStateException("Plugin already enabled: " + meta.getId() + ", state: " + ctx.getState().getName());
             }
@@ -545,7 +567,7 @@ public class PluginManager implements IPluginManager {
                                     throw new IllegalStateException("Plugin not found: " + dep.getPluginId());
                                 }
 
-                                synchronized (depCtx) {
+                                try (final FixedReentrantReadWriteLock.ILock l2 = depCtx.getLock().sharedLock()) {
                                     if (!depCtx.getState().isEnabled()) {
                                         this.enablePluginInternal(dep);
                                     }
@@ -567,31 +589,33 @@ public class PluginManager implements IPluginManager {
                 }
             }
 
-            try {
-                log.info("Enabling plugin: " + meta.getId());
-                ctx.setDynamicState(PluginDynamicState.ENABLING);
+            try (final FixedReentrantReadWriteLock.ILock l2 = ctx.getLock().exclusiveLock()) {
+                try {
+                    log.info("Enabling plugin: " + meta.getId());
+                    ctx.setDynamicState(PluginDynamicState.ENABLING);
 
-                {
-                    final PrePluginEnableEvent event = new PrePluginEnableEvent(ctx);
-                    this.eventMgr.callEvent(PrePluginEnableEvent.class, event);
+                    {
+                        final PrePluginEnableEvent event = new PrePluginEnableEvent(ctx);
+                        this.eventMgr.callEvent(PrePluginEnableEvent.class, event);
+                    }
+
+                    ctx.getPlugin().onEnable();
+
+                    ctx.setState(PluginState.ENABLED);
+                    log.info("Plugin enabled successfully: " + meta.getId());
+
+                    {
+                        final PostPluginEnableEvent event = new PostPluginEnableEvent(ctx);
+                        this.eventMgr.callEvent(PostPluginEnableEvent.class, event);
+                    }
+                } catch (final Throwable t) {
+                    log.error("Failed to enable plugin: " + meta.getId(), t);
+                    throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to enable plugin: " + meta.getId(),
+                            PluginState.LOADED, PluginState.ENABLED,
+                            t);
+                } finally {
+                    ctx.setDynamicState(PluginDynamicState.NONE);
                 }
-
-                ctx.getPlugin().onEnable();
-
-                ctx.setState(PluginState.ENABLED);
-                log.info("Plugin enabled successfully: " + meta.getId());
-
-                {
-                    final PostPluginEnableEvent event = new PostPluginEnableEvent(ctx);
-                    this.eventMgr.callEvent(PostPluginEnableEvent.class, event);
-                }
-            } catch (final Throwable t) {
-                log.error("Failed to enable plugin: " + meta.getId(), t);
-                throw new PluginDynamicsLifecycleException(meta.getId(), "Failed to enable plugin: " + meta.getId(),
-                        PluginState.LOADED, PluginState.ENABLED,
-                        t);
-            } finally {
-                ctx.setDynamicState(PluginDynamicState.NONE);
             }
         }
     }

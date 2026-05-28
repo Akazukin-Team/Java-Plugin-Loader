@@ -9,21 +9,21 @@ import org.jetbrains.annotations.Nullable;
  * Public interface representing plugin metadata information.
  */
 public interface IPluginMetadata {
-    @NotNull String getId();
+    @NotNull
+    String getId();
 
-    @Nullable IPluginDependency[] getDependencies();
+    @NotNull
+    String getName();
 
-    @NotNull String getMainClass();
+    @NotNull
+    ISemVer getVersion();
 
-    default String getInfo() {
-        return String.format("%s v%s - %s", this.getName(), this.getVersion(), this.getDescription());
-    }
+    @Nullable
+    String getDescription();
 
-    @NotNull String getName();
+    @NotNull
+    String getMainClass();
 
-    @NotNull ISemVer getVersion();
-
-    @Nullable String getDescription();
-
-
+    @Nullable
+    IPluginDependency[] getDependencies();
 }

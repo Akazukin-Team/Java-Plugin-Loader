@@ -1,6 +1,6 @@
 [versions]
 #App deps
-akz-util = "5.0.0-SNAPSHOT"
+akz-util = "5.1.0-SNAPSHOT"
 akz-event = "3.0.0-SNAPSHOT"
 akz-semver = "1.0.0-SNAPSHOT"
 lombok = "1.18.44"

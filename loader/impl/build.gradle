@@ -9,6 +9,7 @@ dependencies {
 
     compileOnly libs.akz.event
     compileOnly libs.akz.semver
+    compileOnly libs.akz.util
 
     compileOnly libs.yaml
 }
